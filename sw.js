@@ -1,8 +1,10 @@
-const CACHE_NAME = 'zetamac-v3';
+const CACHE_NAME = 'zetamac-v4';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
+  './analytics-engine.js',
+  './github-sync.js',
   './app.js',
   './manifest.json',
   './icons/icon.svg',

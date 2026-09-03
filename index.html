@@ -36,6 +36,7 @@
       <!-- Start Page Action Card -->
       <div class="card start-actions-card">
         <button id="start-game-btn" class="btn btn-primary btn-large">Start Game</button>
+        <button id="open-stats-btn" class="btn btn-secondary">📊 Statistics &amp; Weaknesses</button>
         <button id="open-settings-btn" class="btn btn-secondary">Game Settings</button>
 
         <div class="high-score-banner" id="start-high-score-banner">
@@ -48,7 +49,7 @@
     <!-- SCREEN 2: GAME SETTINGS PAGE -->
     <main id="settings-screen" class="screen">
 
-      <!-- Daily Goal & Reminder Card (Moved to Settings) -->
+      <!-- Daily Goal & Reminder Card -->
       <div class="card daily-goal-card">
         <div class="daily-goal-header">
           <div>
@@ -210,7 +211,104 @@
 
     </main>
 
-    <!-- SCREEN 4: GAME OVER / RESULTS -->
+    <!-- SCREEN 4: STATISTICS & ANALYTICS -->
+    <main id="stats-screen" class="screen">
+      <div class="stats-screen-header">
+        <button type="button" id="close-stats-btn" class="btn-back">← Back</button>
+        <h2>Statistics &amp; Analytics</h2>
+        <div id="cloud-sync-badge" class="cloud-sync-badge" title="Cloud Sync Status">☁️ Initializing...</div>
+      </div>
+
+      <!-- Sub-Tab Segmented Controls -->
+      <div class="subtab-bar">
+        <button type="button" class="subtab-btn active" data-tab="weaknesses">🔍 Weaknesses</button>
+        <button type="button" class="subtab-btn" data-tab="history">📜 History (30)</button>
+        <button type="button" class="subtab-btn" data-tab="achievements">🏆 PBs &amp; Cloud</button>
+      </div>
+
+      <!-- TAB 1: WEAKNESS ANALYSIS -->
+      <section id="tab-weaknesses" class="subtab-content active">
+        <div class="card weakness-card">
+          <div class="section-title-row">
+            <h3>Diagnostic Report</h3>
+            <span class="window-badge">Matched 60-Day Window</span>
+          </div>
+          <div id="weakness-diagnosis-container">
+            <p class="stats-placeholder">Loading performance models...</p>
+          </div>
+        </div>
+
+        <div class="card weakness-breakdown-card">
+          <h3>Operational Speed Baselines</h3>
+          <div id="op-baselines-list" class="baselines-grid"></div>
+        </div>
+
+        <div class="card factor-analysis-card">
+          <h3>Factor Latency Breakdown</h3>
+          <p class="card-subtitle">Geometric mean of firstKeyMs (cognitive latency) with 90% Confidence Intervals</p>
+          <div id="factor-breakdown-list" class="factor-grid"></div>
+        </div>
+
+        <div class="card hesitation-card">
+          <h3>Notable Hesitations</h3>
+          <p class="card-subtitle">Isolated cognitive bottlenecks and distractions</p>
+          <div id="hesitation-list" class="hesitation-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB 2: ROUND HISTORY (LAST 30) -->
+      <section id="tab-history" class="subtab-content">
+        <div class="card history-card">
+          <div class="section-title-row">
+            <h3>Recent Games</h3>
+            <span class="retention-pill">30 Game Window</span>
+          </div>
+          <p class="card-subtitle">Tap any round to inspect each problem and response time</p>
+          <div id="history-rounds-list" class="history-list"></div>
+        </div>
+      </section>
+
+      <!-- TAB 3: ACHIEVEMENTS, PBs & CLOUD REPO -->
+      <section id="tab-achievements" class="subtab-content">
+        <div class="card pb-card">
+          <h3>Personal Best Milestones</h3>
+          <p class="card-subtitle">Strictly monotonic milestone progression over time</p>
+          <div id="pb-timeline-list" class="pb-timeline"></div>
+        </div>
+
+        <div class="card milestone-card">
+          <h3>Milestone Achievements</h3>
+          <div id="milestones-grid" class="milestones-grid"></div>
+        </div>
+
+        <div class="card cloud-settings-card">
+          <h3>GitHub Repository Cloud Sync</h3>
+          <p class="card-subtitle">Data is securely stored in your private GitHub repository via the Contents API.</p>
+          
+          <div class="cloud-status-box">
+            <div class="cloud-info-row">
+              <span class="info-label">Repository:</span>
+              <span id="cloud-repo-display" class="info-val">Not Connected</span>
+            </div>
+            <div class="cloud-info-row">
+              <span class="info-label">Device ID:</span>
+              <span id="cloud-device-display" class="info-val">...</span>
+            </div>
+            <div class="cloud-info-row">
+              <span class="info-label">Status:</span>
+              <span id="cloud-sync-state" class="info-val">Idle</span>
+            </div>
+          </div>
+
+          <div class="cloud-actions">
+            <button type="button" id="force-sync-btn" class="btn btn-secondary">Force Sync Now</button>
+            <button type="button" id="reconnect-github-btn" class="btn btn-text">Change GitHub Token / Repo</button>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- SCREEN 5: GAME OVER / RESULTS -->
     <main id="game-over-screen" class="screen">
       <div class="card results-card">
         <h2 class="results-title">Game Over!</h2>
@@ -258,14 +356,56 @@
 
         <div class="results-actions">
           <button id="play-again-btn" class="btn btn-primary btn-large">Play Again</button>
+          <button id="view-game-stats-btn" class="btn btn-secondary">📊 View Game Breakdown</button>
           <button id="return-home-btn" class="btn btn-secondary">Home</button>
           <button id="return-settings-btn" class="btn btn-text">Settings</button>
         </div>
       </div>
     </main>
 
+    <!-- ONBOARDING / GITHUB SETUP MODAL -->
+    <div id="github-modal-backdrop" class="modal-backdrop hidden">
+      <div class="modal-card">
+        <h3>Connect Private GitHub Storage</h3>
+        <p class="modal-body-text">
+          Safari deletes PWA data after 7 days without use. Connect a private GitHub repository so your history, weakness analytics, and personal records survive permanently across devices.
+        </p>
+        <p class="modal-body-subtext">
+          This uses a fine-grained Personal Access Token limited strictly to one repository with <code>contents: read/write</code>. It cannot access anything else in your account.
+        </p>
+
+        <form id="github-connect-form" class="modal-form">
+          <div class="form-group">
+            <label for="gh-token-input">Fine-Grained Personal Access Token:</label>
+            <input type="password" id="gh-token-input" placeholder="github_pat_..." autocomplete="off" spellcheck="false" required>
+          </div>
+
+          <div class="form-group">
+            <label for="gh-owner-input">GitHub Username (Owner):</label>
+            <input type="text" id="gh-owner-input" placeholder="e.g. lyn1dev" autocomplete="off" spellcheck="false" required>
+          </div>
+
+          <div class="form-group">
+            <label for="gh-repo-input">Repository Name (Private):</label>
+            <input type="text" id="gh-repo-input" value="zetamac-data" placeholder="zetamac-data" autocomplete="off" spellcheck="false" required>
+            <span class="input-hint">Ensure you created this private repository on GitHub (initialized with a README).</span>
+          </div>
+
+          <div id="gh-modal-error" class="modal-error hidden"></div>
+
+          <div class="modal-actions">
+            <button type="submit" id="gh-connect-submit-btn" class="btn btn-primary">Connect &amp; Sync</button>
+            <button type="button" id="gh-connect-skip-btn" class="btn btn-text">Skip / Play Locally</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
   </div>
 
+  <!-- Application Modules -->
+  <script src="analytics-engine.js"></script>
+  <script src="github-sync.js"></script>
   <script src="app.js"></script>
 </body>
 </html>
