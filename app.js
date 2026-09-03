@@ -1,38 +1,12 @@
 /**
  * Zetamac 1:1 Clone - Application Engine
- * Optimized for iPhone PWA with exclusive custom on-screen keypad & timestamp-diffing timer
+ * Optimized for iPhone PWA with True OLED Pitch Black theme & exclusive custom on-screen keypad
  */
 
 (() => {
   'use strict';
 
-  // --- Audio Synthesis (No external assets required) ---
-  let audioCtx = null;
-  function playBeep(freq = 784, duration = 0.04) {
-    if (!settings.soundEnabled) return;
-    try {
-      if (!audioCtx) {
-        audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-      }
-      if (audioCtx.state === 'suspended') {
-        audioCtx.resume();
-      }
-      const osc = audioCtx.createOscillator();
-      const gain = audioCtx.createGain();
-      osc.type = 'sine';
-      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
-      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
-      osc.connect(gain);
-      gain.connect(audioCtx.destination);
-      osc.start();
-      osc.stop(audioCtx.currentTime + duration);
-    } catch (e) {
-      // Audio context might be restricted before first gesture
-    }
-  }
-
-  // --- Default Configuration ---
+  // --- Default Configuration (Default to OLED Pitch Black Dark Mode) ---
   const DEFAULT_SETTINGS = {
     duration: 120,
     addEnabled: true,
@@ -47,8 +21,7 @@
     multMax2: 100,
     subEnabled: true,
     divEnabled: true,
-    soundEnabled: true,
-    theme: 'light'
+    theme: 'dark'
   };
 
   // State
@@ -63,15 +36,26 @@
   let timerAnimFrame = null;
   let timerInterval = null;
 
-  // DOM Elements
+  // DOM Screens
   const screens = {
+    start: document.getElementById('start-screen'),
     settings: document.getElementById('settings-screen'),
     game: document.getElementById('game-screen'),
     gameOver: document.getElementById('game-over-screen')
   };
 
   const el = {
-    // Settings elements
+    // Header
+    themeToggleBtn: document.getElementById('theme-toggle-btn'),
+
+    // Start Screen Elements
+    startBtn: document.getElementById('start-game-btn'),
+    openSettingsBtn: document.getElementById('open-settings-btn'),
+    bestScoreDisplay: document.getElementById('best-score-display'),
+
+    // Settings Screen Elements
+    closeSettingsBtn: document.getElementById('close-settings-btn'),
+    saveSettingsBtn: document.getElementById('save-settings-btn'),
     durationInput: document.getElementById('game-duration'),
     opAdd: document.getElementById('op-add'),
     addMin1: document.getElementById('add-min-1'),
@@ -85,20 +69,16 @@
     multMax2: document.getElementById('mult-max-2'),
     opSub: document.getElementById('op-sub'),
     opDiv: document.getElementById('op-div'),
-    startBtn: document.getElementById('start-game-btn'),
     restoreDefaultsBtn: document.getElementById('restore-defaults-btn'),
-    bestScoreDisplay: document.getElementById('best-score-display'),
-    themeToggleBtn: document.getElementById('theme-toggle-btn'),
-    soundToggleBtn: document.getElementById('sound-toggle-btn'),
 
-    // Daily Goal & Reminder elements
+    // Daily Goal & Reminder Elements
     dailyRoundsCount: document.getElementById('daily-rounds-count'),
     goalProgressBar: document.getElementById('goal-progress-bar'),
     goalStatusMessage: document.getElementById('goal-status-message'),
     reminderToggleBtn: document.getElementById('reminder-toggle-btn'),
     reminderToggleLabel: document.getElementById('reminder-toggle-label'),
 
-    // Gameplay elements
+    // Active Gameplay Elements
     gameTimer: document.getElementById('game-timer'),
     gameScore: document.getElementById('game-score'),
     problemPrompt: document.getElementById('problem-prompt'),
@@ -107,7 +87,7 @@
     numpadContainer: document.getElementById('numpad-container'),
     abortBtn: document.getElementById('abort-game-btn'),
 
-    // Results elements
+    // Results Screen Elements
     finalScoreNumber: document.getElementById('final-score-number'),
     newRecordBadge: document.getElementById('new-record-badge'),
     statPace: document.getElementById('stat-pace'),
@@ -115,6 +95,7 @@
     statDuration: document.getElementById('stat-duration'),
     statPersonalBest: document.getElementById('stat-personal-best'),
     playAgainBtn: document.getElementById('play-again-btn'),
+    returnHomeBtn: document.getElementById('return-home-btn'),
     returnSettingsBtn: document.getElementById('return-settings-btn'),
     resultsDailyCount: document.getElementById('results-daily-count'),
     resultsProgressBar: document.getElementById('results-progress-bar'),
@@ -187,13 +168,64 @@
     } catch (e) {}
   }
 
+  function applySettingsToUI() {
+    el.durationInput.value = settings.duration;
+    el.opAdd.checked = settings.addEnabled;
+    el.addMin1.value = settings.addMin1;
+    el.addMax1.value = settings.addMax1;
+    el.addMin2.value = settings.addMin2;
+    el.addMax2.value = settings.addMax2;
+
+    el.opMult.checked = settings.multEnabled;
+    el.multMin1.value = settings.multMin1;
+    el.multMax1.value = settings.multMax1;
+    el.multMin2.value = settings.multMin2;
+    el.multMax2.value = settings.multMax2;
+
+    el.opSub.checked = settings.subEnabled;
+    el.opDiv.checked = settings.divEnabled;
+
+    el.bestScoreDisplay.textContent = highScore;
+
+    document.documentElement.setAttribute('data-theme', settings.theme);
+    el.themeToggleBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
+  }
+
+  function readSettingsFromUI() {
+    const dur = parseInt(el.durationInput.value, 10);
+    settings.duration = (!isNaN(dur) && dur > 0) ? dur : 120;
+
+    settings.addEnabled = el.opAdd.checked;
+    settings.addMin1 = Math.max(1, parseInt(el.addMin1.value, 10) || 2);
+    settings.addMax1 = Math.max(settings.addMin1, parseInt(el.addMax1.value, 10) || 100);
+    settings.addMin2 = Math.max(1, parseInt(el.addMin2.value, 10) || 2);
+    settings.addMax2 = Math.max(settings.addMin2, parseInt(el.addMax2.value, 10) || 100);
+
+    settings.multEnabled = el.opMult.checked;
+    settings.multMin1 = Math.max(1, parseInt(el.multMin1.value, 10) || 2);
+    settings.multMax1 = Math.max(settings.multMin1, parseInt(el.multMax1.value, 10) || 12);
+    settings.multMin2 = Math.max(1, parseInt(el.multMin2.value, 10) || 2);
+    settings.multMax2 = Math.max(settings.multMin2, parseInt(el.multMax2.value, 10) || 100);
+
+    settings.subEnabled = el.opSub.checked;
+    settings.divEnabled = el.opDiv.checked;
+
+    // Safety: ensure at least one operation is enabled
+    if (!settings.addEnabled && !settings.multEnabled && !settings.subEnabled && !settings.divEnabled) {
+      settings.addEnabled = true;
+      el.opAdd.checked = true;
+    }
+
+    saveSettings();
+  }
+
   function updateDailyGoalUI() {
     if (!el.dailyRoundsCount || !el.goalProgressBar) return;
     
-    // 1. Settings screen count
+    // 1. Start screen count
     el.dailyRoundsCount.textContent = dailyStats.rounds;
 
-    // 2. Settings screen 5-segment bar
+    // 2. Start screen 5-segment bar
     const segments = el.goalProgressBar.querySelectorAll('.progress-segment');
     segments.forEach((seg, idx) => {
       seg.classList.toggle('completed', idx < dailyStats.rounds);
@@ -296,62 +328,12 @@
     }
   }
 
-  function applySettingsToUI() {
-    el.durationInput.value = settings.duration;
-    el.opAdd.checked = settings.addEnabled;
-    el.addMin1.value = settings.addMin1;
-    el.addMax1.value = settings.addMax1;
-    el.addMin2.value = settings.addMin2;
-    el.addMax2.value = settings.addMax2;
-
-    el.opMult.checked = settings.multEnabled;
-    el.multMin1.value = settings.multMin1;
-    el.multMax1.value = settings.multMax1;
-    el.multMin2.value = settings.multMin2;
-    el.multMax2.value = settings.multMax2;
-
-    el.opSub.checked = settings.subEnabled;
-    el.opDiv.checked = settings.divEnabled;
-
-    el.bestScoreDisplay.textContent = highScore;
-    el.soundToggleBtn.textContent = settings.soundEnabled ? '🔊' : '🔇';
-
-    document.documentElement.setAttribute('data-theme', settings.theme);
-    el.themeToggleBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
-  }
-
-  function readSettingsFromUI() {
-    const dur = parseInt(el.durationInput.value, 10);
-    settings.duration = (!isNaN(dur) && dur > 0) ? dur : 120;
-
-    settings.addEnabled = el.opAdd.checked;
-    settings.addMin1 = Math.max(1, parseInt(el.addMin1.value, 10) || 2);
-    settings.addMax1 = Math.max(settings.addMin1, parseInt(el.addMax1.value, 10) || 100);
-    settings.addMin2 = Math.max(1, parseInt(el.addMin2.value, 10) || 2);
-    settings.addMax2 = Math.max(settings.addMin2, parseInt(el.addMax2.value, 10) || 100);
-
-    settings.multEnabled = el.opMult.checked;
-    settings.multMin1 = Math.max(1, parseInt(el.multMin1.value, 10) || 2);
-    settings.multMax1 = Math.max(settings.multMin1, parseInt(el.multMax1.value, 10) || 12);
-    settings.multMin2 = Math.max(1, parseInt(el.multMin2.value, 10) || 2);
-    settings.multMax2 = Math.max(settings.multMin2, parseInt(el.multMax2.value, 10) || 100);
-
-    settings.subEnabled = el.opSub.checked;
-    settings.divEnabled = el.opDiv.checked;
-
-    // Safety: ensure at least one operation is enabled
-    if (!settings.addEnabled && !settings.multEnabled && !settings.subEnabled && !settings.divEnabled) {
-      settings.addEnabled = true;
-      el.opAdd.checked = true;
-    }
-
-    saveSettings();
-  }
-
   // --- Screen Navigation ---
   function showScreen(name) {
     Object.keys(screens).forEach((screenKey) => {
-      screens[screenKey].classList.toggle('active', screenKey === name);
+      if (screens[screenKey]) {
+        screens[screenKey].classList.toggle('active', screenKey === name);
+      }
     });
   }
 
@@ -382,11 +364,9 @@
         };
       }
       case '-': {
-        // Inversion of addition: pick operands in addition ranges, answer is one of them
         const a = randomInt(settings.addMin1, settings.addMax1);
         const b = randomInt(settings.addMin2, settings.addMax2);
         const sum = a + b;
-        // 50% chance: (a + b) - a = b OR (a + b) - b = a
         if (Math.random() < 0.5) {
           return {
             prompt: `${sum} – ${a} =`,
@@ -402,7 +382,6 @@
       case '*': {
         let a = randomInt(settings.multMin1, settings.multMax1);
         let b = randomInt(settings.multMin2, settings.multMax2);
-        // Randomly flip order of factors
         if (Math.random() < 0.5) {
           [a, b] = [b, a];
         }
@@ -412,11 +391,9 @@
         };
       }
       case '/': {
-        // Inversion of multiplication: pick factors in mult ranges
         const a = randomInt(settings.multMin1, settings.multMax1);
         const b = randomInt(settings.multMin2, settings.multMax2);
         const prod = a * b;
-        // 50% chance: (a * b) / a = b OR (a * b) / b = a
         if (Math.random() < 0.5) {
           return {
             prompt: `${prod} ÷ ${a} =`,
@@ -447,7 +424,6 @@
     gameEndTime = gameStartTime + settings.duration * 1000;
     updateTimerDisplay();
 
-    // High accuracy animation frame loop + interval backup for screen dimming
     const tick = () => {
       if (gameState !== 'running') return;
       const now = Date.now();
@@ -472,7 +448,6 @@
     };
 
     timerAnimFrame = requestAnimationFrame(tick);
-    // Interval backup (every 150ms) to ensure background tabs or dimmed iOS screens tick accurately
     timerInterval = setInterval(() => {
       if (gameState !== 'running') return;
       if (Date.now() >= gameEndTime) {
@@ -494,7 +469,6 @@
     el.gameTimer.textContent = Math.ceil(remainingMs / 1000);
   }
 
-  // Document visibility change listener ensures immediate sync upon unlocking or returning to app
   document.addEventListener('visibilitychange', () => {
     if (gameState === 'running') {
       if (Date.now() >= gameEndTime) {
@@ -525,31 +499,24 @@
 
     // Number input (0-9)
     if (/^[0-9]$/.test(key)) {
-      // Prevent overflow buffer
       if (virtualBuffer.length >= 8) return;
 
       virtualBuffer += key;
       el.virtualAnswerText.textContent = virtualBuffer;
 
-      // Instant Match Check (Hallmark Zetamac mechanics)
       const userVal = parseInt(virtualBuffer, 10);
       if (userVal === currentProblem.answer) {
-        // Correct answer!
         score++;
         el.gameScore.textContent = score;
 
-        // Feedback: sound, haptic, visual flash
-        playBeep(880, 0.04);
         if (navigator.vibrate) {
-          try { navigator.vibrate(12); } catch (e) {}
+          try { navigator.vibrate(10); } catch (e) {}
         }
         
         el.virtualAnswerBox.classList.remove('correct-flash');
-        // Force reflow for CSS animation restart
         void el.virtualAnswerBox.offsetWidth;
         el.virtualAnswerBox.classList.add('correct-flash');
 
-        // Immediately advance to next problem
         displayNextProblem();
       }
     }
@@ -557,7 +524,6 @@
 
   // --- Game Lifecycle ---
   function startGame() {
-    readSettingsFromUI();
     score = 0;
     el.gameScore.textContent = '0';
     gameState = 'running';
@@ -603,13 +569,6 @@
     saveDailyStats();
     updateDailyGoalUI();
 
-    // If reached 5th round, play celebration chime
-    if (dailyStats.rounds === 5) {
-      playBeep(1174, 0.18);
-    } else {
-      playBeep(isNewBest ? 1046 : 523, 0.12);
-    }
-
     showScreen('gameOver');
   }
 
@@ -618,9 +577,8 @@
   // Custom On-Screen Keypad Listeners (Touch / Pointer without iOS zoom or keyboard)
   const numpadKeys = el.numpadContainer.querySelectorAll('.numpad-key');
   numpadKeys.forEach((keyBtn) => {
-    // Using pointerdown for instantaneous reaction without 300ms tap delay
     keyBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault(); // Prevents touch zoom & focus behaviors
+      e.preventDefault();
       const key = keyBtn.getAttribute('data-key');
       keyBtn.classList.add('key-pressed');
       handleInput(key);
@@ -632,13 +590,13 @@
     keyBtn.addEventListener('pointercancel', removePressState);
   });
 
-  // Physical Keyboard listener for Desktop testing (does NOT focus any mobile input)
+  // Physical Keyboard listener for Desktop testing
   window.addEventListener('keydown', (e) => {
-    // If typing inside settings number inputs, let standard input happen
     if (e.target.tagName === 'INPUT') {
       if (e.key === 'Enter') {
         e.target.blur();
-        startGame();
+        readSettingsFromUI();
+        showScreen('start');
       }
       return;
     }
@@ -667,9 +625,29 @@
     }
   });
 
-  // Buttons
+  // Navigation & Button Actions
   el.startBtn.addEventListener('click', () => startGame());
   el.playAgainBtn.addEventListener('click', () => startGame());
+
+  el.openSettingsBtn.addEventListener('click', () => {
+    showScreen('settings');
+  });
+
+  el.closeSettingsBtn.addEventListener('click', () => {
+    readSettingsFromUI();
+    showScreen('start');
+  });
+
+  el.saveSettingsBtn.addEventListener('click', () => {
+    readSettingsFromUI();
+    showScreen('start');
+  });
+
+  el.returnHomeBtn.addEventListener('click', () => {
+    showScreen('start');
+    gameState = 'idle';
+  });
+
   el.returnSettingsBtn.addEventListener('click', () => {
     showScreen('settings');
     gameState = 'idle';
@@ -682,7 +660,7 @@
   });
 
   el.restoreDefaultsBtn.addEventListener('click', () => {
-    settings = { ...DEFAULT_SETTINGS, soundEnabled: settings.soundEnabled, theme: settings.theme };
+    settings = { ...DEFAULT_SETTINGS, theme: settings.theme };
     applySettingsToUI();
     saveSettings();
   });
@@ -695,14 +673,7 @@
     saveSettings();
   });
 
-  // Sound Toggle
-  el.soundToggleBtn.addEventListener('click', () => {
-    settings.soundEnabled = !settings.soundEnabled;
-    el.soundToggleBtn.textContent = settings.soundEnabled ? '🔊' : '🔇';
-    saveSettings();
-  });
-
-  // Reminder Toggle Button (Requests permission on iOS/Desktop)
+  // Reminder Toggle Button
   el.reminderToggleBtn.addEventListener('click', () => {
     if (!('Notification' in window)) {
       alert('Notifications are not supported in this browser. On iPhone, make sure you are on iOS 16.4+ and have added this app to your Home Screen.');
@@ -755,11 +726,10 @@
   loadSavedData();
   applySettingsToUI();
   updateDailyGoalUI();
-  showScreen('settings');
+  showScreen('start');
 
   // Check reminders on load and periodically every 60 seconds
   setInterval(checkAndSendHourlyReminder, 60000);
   checkAndSendHourlyReminder();
 
 })();
-

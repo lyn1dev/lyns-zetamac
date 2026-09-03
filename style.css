@@ -1,9 +1,44 @@
 /* ==========================================================================
-   Zetamac 1:1 Clone - Stylesheet (iPhone PWA & Desktop Optimized)
+   Zetamac 1:1 Clone - Stylesheet (OLED True Pitch Black & iPhone Optimized)
    ========================================================================== */
 
 :root {
-  /* Light Theme (Default Zetamac Authentic Look) */
+  /* Default OLED True Pitch Black Theme (#000000) */
+  --bg-color: #000000;
+  --card-bg: #000000;
+  --text-main: #ffffff;
+  --text-muted: #a1a1aa;
+  --border-color: #27272a;
+  --border-subtle: #18181b;
+  
+  --primary: #ffffff;
+  --primary-bg: #000000;
+  --primary-border: #ffffff;
+  --primary-hover: #ffffff;
+  --primary-text: #ffffff;
+  
+  --secondary-bg: #000000;
+  --secondary-border: #3f3f46;
+  --secondary-text: #ffffff;
+
+  --accent-green: #10b981;
+  --accent-green-bg: rgba(16, 185, 129, 0.15);
+  --accent-red: #ef4444;
+
+  --numpad-bg: #000000;
+  --numpad-btn: #000000;
+  --numpad-btn-active: #000000;
+  --numpad-text: #ffffff;
+  --numpad-border: #3f3f46;
+  --numpad-action-bg: #000000;
+  --numpad-action-text: #a1a1aa;
+
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-key: none;
+}
+
+[data-theme="light"] {
   --bg-color: #fcfcfc;
   --card-bg: #ffffff;
   --text-main: #111827;
@@ -12,11 +47,12 @@
   --border-subtle: #e5e7eb;
   
   --primary: #1e3a8a;
-  --primary-hover: #172554;
+  --primary-bg: #1e3a8a;
+  --primary-border: #1e3a8a;
   --primary-text: #ffffff;
   
-  --secondary: #e2e8f0;
-  --secondary-hover: #cbd5e1;
+  --secondary-bg: #e2e8f0;
+  --secondary-border: #cbd5e1;
   --secondary-text: #1e293b;
 
   --accent-green: #059669;
@@ -27,43 +63,9 @@
   --numpad-btn: #ffffff;
   --numpad-btn-active: #e2e8f0;
   --numpad-text: #0f172a;
+  --numpad-border: #cbd5e1;
   --numpad-action-bg: #f8fafc;
   --numpad-action-text: #475569;
-  --numpad-border: #cbd5e1;
-
-  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-  --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
-  --shadow-key: 0 2px 0 #94a3b8;
-}
-
-[data-theme="dark"] {
-  --bg-color: #0f172a;
-  --card-bg: #1e293b;
-  --text-main: #f8fafc;
-  --text-muted: #94a3b8;
-  --border-color: #334155;
-  --border-subtle: #1e293b;
-
-  --primary: #3b82f6;
-  --primary-hover: #60a5fa;
-  --primary-text: #ffffff;
-
-  --secondary: #334155;
-  --secondary-hover: #475569;
-  --secondary-text: #f8fafc;
-
-  --accent-green: #10b981;
-  --accent-green-bg: rgba(16, 185, 129, 0.15);
-  --accent-red: #ef4444;
-
-  --numpad-bg: #182234;
-  --numpad-btn: #283548;
-  --numpad-btn-active: #3b4c64;
-  --numpad-text: #f8fafc;
-  --numpad-action-bg: #1e293b;
-  --numpad-action-text: #94a3b8;
-  --numpad-border: #334155;
-  --shadow-key: 0 2px 0 #0f172a;
 }
 
 /* Reset & Box Sizing */
@@ -96,6 +98,7 @@ html, body {
   min-height: 100vh;
   max-width: 540px;
   margin: 0 auto;
+  background-color: var(--bg-color);
   padding-top: max(12px, env(safe-area-inset-top));
   padding-bottom: max(16px, env(safe-area-inset-bottom));
   padding-left: max(16px, env(safe-area-inset-left));
@@ -107,7 +110,8 @@ html, body {
   position: relative;
   text-align: center;
   padding: 8px 0 16px;
-  border-bottom: 1px solid var(--border-subtle);
+  border-bottom: 1px solid var(--border-color);
+  background: var(--bg-color);
 }
 
 #app-title {
@@ -144,7 +148,7 @@ html, body {
   align-items: center;
   justify-content: center;
   font-size: 16px;
-  transition: background 0.15s ease, transform 0.1s ease;
+  transition: transform 0.1s ease, border-color 0.15s ease;
 }
 
 .icon-btn:active {
@@ -162,23 +166,62 @@ html, body {
   display: flex;
 }
 
-/* Card Component */
+/* Card Component (OLED Pitch Black) */
 .card {
   background: var(--card-bg);
   border: 1px solid var(--border-color);
   border-radius: 12px;
   padding: 20px;
-  box-shadow: var(--shadow-sm);
   margin-top: 16px;
 }
 
-/* Settings Screen */
-.settings-card h2 {
-  font-size: 19px;
-  font-weight: 600;
+/* ==========================================================================
+   START PAGE
+   ========================================================================== */
+.start-actions-card {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  text-align: center;
+  padding: 28px 20px;
+}
+
+#start-game-btn {
+  font-size: 20px;
+  padding: 16px;
+  letter-spacing: 0.5px;
+}
+
+/* ==========================================================================
+   SETTINGS PAGE
+   ========================================================================== */
+.settings-header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
   margin-bottom: 18px;
-  padding-bottom: 8px;
-  border-bottom: 1px solid var(--border-subtle);
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.settings-header h2 {
+  font-size: 20px;
+  font-weight: 700;
+}
+
+.btn-back {
+  background: none;
+  border: 1px solid var(--border-color);
+  color: var(--text-main);
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.btn-back:active {
+  background: #18181b;
 }
 
 .setting-group {
@@ -212,10 +255,10 @@ html, body {
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  background: var(--bg-color);
+  background: var(--card-bg);
   padding: 10px 12px;
   border-radius: 8px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-color);
 }
 
 .checkbox-container {
@@ -230,7 +273,7 @@ html, body {
 .checkbox-container input[type="checkbox"] {
   width: 20px;
   height: 20px;
-  accent-color: var(--primary);
+  accent-color: #ffffff;
   cursor: pointer;
 }
 
@@ -251,8 +294,8 @@ html, body {
   border-radius: 6px;
   font-size: 15px;
   font-weight: 600;
-  background: var(--card-bg);
-  color: var(--text-main);
+  background: #000000;
+  color: #ffffff;
   -webkit-appearance: none;
   -moz-appearance: textfield;
 }
@@ -278,21 +321,23 @@ html, body {
 
 .high-score-banner {
   text-align: center;
-  margin-top: 18px;
-  padding: 10px;
+  margin-top: 14px;
+  padding: 12px;
   border-radius: 8px;
-  background: var(--bg-color);
+  background: #000000;
   border: 1px dashed var(--border-color);
   font-size: 15px;
   color: var(--text-muted);
 }
 
 .high-score-banner strong {
-  color: var(--primary);
+  color: #ffffff;
   font-size: 18px;
 }
 
-/* Buttons */
+/* ==========================================================================
+   BUTTONS (Pitch Black OLED Outlines)
+   ========================================================================== */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -300,9 +345,8 @@ html, body {
   font-size: 16px;
   font-weight: 600;
   padding: 12px 20px;
-  border-radius: 8px;
+  border-radius: 10px;
   cursor: pointer;
-  border: none;
   transition: all 0.1s ease;
   width: 100%;
 }
@@ -312,13 +356,14 @@ html, body {
 }
 
 .btn-primary {
-  background: var(--primary);
-  color: var(--primary-text);
-  box-shadow: var(--shadow-sm);
+  background: #000000;
+  border: 2px solid #ffffff;
+  color: #ffffff;
 }
 
 .btn-primary:active {
-  background: var(--primary-hover);
+  background: #ffffff;
+  color: #000000;
 }
 
 .btn-large {
@@ -327,12 +372,14 @@ html, body {
 }
 
 .btn-secondary {
-  background: var(--secondary);
-  color: var(--secondary-text);
+  background: #000000;
+  border: 1.5px solid var(--secondary-border);
+  color: #ffffff;
 }
 
 .btn-secondary:active {
-  background: var(--secondary-hover);
+  border-color: #ffffff;
+  background: #18181b;
 }
 
 .btn-text {
@@ -350,11 +397,12 @@ html, body {
 }
 
 /* ==========================================================================
-   GAME SCREEN
+   GAME SCREEN (Pitch Black OLED)
    ========================================================================== */
 #game-screen {
   justify-content: space-between;
   padding-top: 10px;
+  background: #000000;
 }
 
 /* Status Bar */
@@ -363,10 +411,9 @@ html, body {
   justify-content: space-between;
   align-items: center;
   padding: 12px 16px;
-  background: var(--card-bg);
+  background: #000000;
   border: 1px solid var(--border-color);
   border-radius: 10px;
-  box-shadow: var(--shadow-sm);
 }
 
 .status-box {
@@ -384,11 +431,11 @@ html, body {
   font-size: 24px;
   font-weight: 800;
   font-variant-numeric: tabular-nums;
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .timer-box .status-value {
-  color: var(--primary);
+  color: #ffffff;
 }
 
 .timer-warning {
@@ -411,6 +458,7 @@ html, body {
   min-height: 120px;
   margin: auto 0;
   text-align: center;
+  background: #000000;
 }
 
 .problem-prompt {
@@ -418,14 +466,15 @@ html, body {
   font-size: 38px;
   font-weight: 700;
   letter-spacing: 0.5px;
-  color: var(--text-main);
+  color: #ffffff;
   white-space: nowrap;
 }
 
 .virtual-answer-box {
   min-width: 90px;
   min-height: 54px;
-  border-bottom: 3px solid var(--text-main);
+  background: #000000;
+  border-bottom: 3px solid #ffffff;
   display: inline-flex;
   align-items: center;
   justify-content: flex-start;
@@ -433,23 +482,21 @@ html, body {
   font-size: 38px;
   font-weight: 700;
   font-family: "Times New Roman", Times, Georgia, serif;
-  color: var(--text-main);
-  transition: border-color 0.1s ease, background 0.1s ease;
+  color: #ffffff;
+  transition: border-color 0.1s ease;
 }
 
 .virtual-answer-box.correct-flash {
-  animation: flashSuccess 0.2s ease-out;
+  animation: flashSuccess 0.15s ease-out;
 }
 
 @keyframes flashSuccess {
   0% {
-    background-color: var(--accent-green-bg);
     border-bottom-color: var(--accent-green);
-    transform: scale(1.04);
+    transform: scale(1.05);
   }
   100% {
-    background-color: transparent;
-    border-bottom-color: var(--text-main);
+    border-bottom-color: #ffffff;
     transform: scale(1);
   }
 }
@@ -458,7 +505,7 @@ html, body {
   display: inline-block;
   width: 3px;
   height: 34px;
-  background-color: var(--primary);
+  background-color: #ffffff;
   margin-left: 2px;
   animation: blink 1s infinite;
 }
@@ -469,7 +516,7 @@ html, body {
 }
 
 /* ==========================================================================
-   CUSTOM ON-SCREEN NUMPAD (Exclusive Mobile Input)
+   CUSTOM ON-SCREEN NUMPAD (Pitch Black Buttons with Outlines)
    ========================================================================== */
 .numpad-container {
   width: 100%;
@@ -487,10 +534,9 @@ html, body {
 .numpad-key {
   appearance: none;
   -webkit-appearance: none;
-  background: var(--numpad-btn);
-  color: var(--numpad-text);
-  border: 1px solid var(--numpad-border);
-  box-shadow: var(--shadow-key);
+  background: #000000 !important; /* Pitch black for OLED pixel turn-off */
+  color: #ffffff;
+  border: 1.5px solid var(--numpad-border);
   border-radius: 12px;
   height: 64px;
   font-size: 28px;
@@ -502,30 +548,41 @@ html, body {
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  transition: transform 0.05s ease, background-color 0.05s ease, box-shadow 0.05s ease;
+  transition: transform 0.05s ease, border-color 0.05s ease;
 }
 
-/* Tactile press response for rapid thumb tapping */
+/* Tactile press response with outline highlight */
 .numpad-key:active,
 .numpad-key.key-pressed {
-  background: var(--numpad-btn-active);
+  border-color: #ffffff;
   transform: translateY(2px);
-  box-shadow: 0 0 0 transparent;
 }
 
 .numpad-action {
-  background: var(--numpad-action-bg);
-  color: var(--numpad-action-text);
   font-size: 22px;
   font-weight: 600;
 }
 
 .numpad-clear {
+  border-color: var(--accent-red);
   color: var(--accent-red);
 }
 
+.numpad-clear:active,
+.numpad-clear.key-pressed {
+  border-color: #f87171;
+  color: #ffffff;
+}
+
 .numpad-backspace {
+  border-color: #71717a;
+  color: #ffffff;
   font-size: 24px;
+}
+
+.numpad-backspace:active,
+.numpad-backspace.key-pressed {
+  border-color: #ffffff;
 }
 
 .game-footer-actions {
@@ -534,11 +591,13 @@ html, body {
 }
 
 /* ==========================================================================
-   GAME OVER / RESULTS SCREEN
+   GAME OVER / RESULTS SCREEN (OLED Pitch Black)
    ========================================================================== */
 .results-card {
   text-align: center;
   padding: 28px 20px;
+  background: #000000;
+  border: 1px solid var(--border-color);
 }
 
 .results-title {
@@ -546,14 +605,15 @@ html, body {
   font-size: 28px;
   font-weight: 700;
   margin-bottom: 20px;
+  color: #ffffff;
 }
 
 .final-score-container {
-  margin: 10px 0 24px;
+  margin: 10px 0 20px;
   padding: 16px;
-  background: var(--bg-color);
+  background: #000000;
   border-radius: 12px;
-  border: 1px solid var(--border-subtle);
+  border: 1px solid var(--border-color);
 }
 
 .final-score-label {
@@ -568,7 +628,7 @@ html, body {
   font-size: 64px;
   font-weight: 800;
   line-height: 1.1;
-  color: var(--primary);
+  color: #ffffff;
   font-variant-numeric: tabular-nums;
   margin-top: 4px;
 }
@@ -576,8 +636,9 @@ html, body {
 .new-record-badge {
   display: inline-block;
   margin-top: 8px;
-  background: #fef08a;
-  color: #854d0e;
+  background: #000000;
+  border: 1px solid #eab308;
+  color: #facc15;
   font-weight: 700;
   font-size: 13px;
   padding: 4px 12px;
@@ -604,8 +665,8 @@ html, body {
 }
 
 .stat-card {
-  background: var(--bg-color);
-  border: 1px solid var(--border-subtle);
+  background: #000000;
+  border: 1px solid var(--border-color);
   border-radius: 8px;
   padding: 12px 10px;
   display: flex;
@@ -623,7 +684,7 @@ html, body {
 .stat-val {
   font-size: 18px;
   font-weight: 700;
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .results-actions {
@@ -632,39 +693,17 @@ html, body {
   gap: 10px;
 }
 
-/* Small screen tweaks (e.g. iPhone SE / smaller viewports) */
-@media (max-height: 700px) {
-  #app-header {
-    padding: 4px 0 10px;
-  }
-  #app-title {
-    font-size: 22px;
-  }
-  .card {
-    padding: 14px;
-    margin-top: 10px;
-  }
-  .numpad-key {
-    height: 52px;
-    font-size: 24px;
-  }
-  .problem-prompt, .virtual-answer-box {
-    font-size: 30px;
-  }
-  .problem-container {
-    padding: 12px 8px;
-    min-height: 90px;
-  }
-}
-
 /* ==========================================================================
-   DAILY GOAL & HOURLY REMINDERS
+   DAILY GOAL & HOURLY REMINDERS (Pitch Black)
    ========================================================================== */
 
 .daily-goal-card {
   margin-bottom: 4px;
   border-left: 4px solid var(--accent-green);
-  background: var(--card-bg);
+  background: #000000;
+  border-top: 1px solid var(--border-color);
+  border-right: 1px solid var(--border-color);
+  border-bottom: 1px solid var(--border-color);
 }
 
 .daily-goal-header {
@@ -677,7 +716,7 @@ html, body {
 .daily-goal-title {
   font-size: 17px;
   font-weight: 700;
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .daily-goal-subtitle {
@@ -704,14 +743,16 @@ html, body {
 .progress-segment {
   flex: 1;
   height: 10px;
-  background: var(--border-subtle);
+  background: #18181b;
+  border: 1px solid #27272a;
   border-radius: 999px;
-  transition: background 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.3s ease, border-color 0.2s ease;
 }
 
 .progress-segment.completed {
   background: var(--accent-green);
-  box-shadow: 0 0 6px rgba(5, 150, 105, 0.4);
+  border-color: var(--accent-green);
+  box-shadow: 0 0 8px rgba(16, 185, 129, 0.4);
 }
 
 .goal-status-message {
@@ -730,7 +771,7 @@ html, body {
   justify-content: space-between;
   align-items: center;
   padding-top: 12px;
-  border-top: 1px solid var(--border-subtle);
+  border-top: 1px solid var(--border-color);
   gap: 12px;
 }
 
@@ -741,7 +782,7 @@ html, body {
 
 .reminder-info strong {
   font-size: 14px;
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .reminder-subtext {
@@ -758,8 +799,8 @@ html, body {
   font-weight: 600;
   border-radius: 20px;
   border: 1px solid var(--border-color);
-  background: var(--bg-color);
-  color: var(--text-main);
+  background: #000000;
+  color: #ffffff;
   cursor: pointer;
   white-space: nowrap;
   transition: all 0.2s ease;
@@ -770,21 +811,21 @@ html, body {
 }
 
 .btn-toggle.active {
-  background: var(--accent-green-bg);
   border-color: var(--accent-green);
   color: var(--accent-green);
+  background: #000000;
 }
 
 .btn-toggle.needs-permission {
-  background: var(--primary);
-  border-color: var(--primary);
-  color: var(--primary-text);
+  border-color: #ffffff;
+  color: #ffffff;
+  background: #000000;
 }
 
 /* Results Screen Daily Progress Banner */
 .daily-progress-banner {
-  background: var(--bg-color);
-  border: 1px solid var(--border-subtle);
+  background: #000000;
+  border: 1px solid var(--border-color);
   border-radius: 10px;
   padding: 12px 14px;
   margin: 12px 0 20px;
@@ -800,7 +841,7 @@ html, body {
 
 .daily-banner-label {
   font-weight: 600;
-  color: var(--text-main);
+  color: #ffffff;
 }
 
 .daily-banner-count {
@@ -821,3 +862,27 @@ html, body {
   color: var(--text-muted);
 }
 
+/* Small screen tweaks (e.g. iPhone SE / smaller viewports) */
+@media (max-height: 700px) {
+  #app-header {
+    padding: 4px 0 10px;
+  }
+  #app-title {
+    font-size: 22px;
+  }
+  .card {
+    padding: 14px;
+    margin-top: 10px;
+  }
+  .numpad-key {
+    height: 52px;
+    font-size: 24px;
+  }
+  .problem-prompt, .virtual-answer-box {
+    font-size: 30px;
+  }
+  .problem-container {
+    padding: 12px 8px;
+    min-height: 90px;
+  }
+}

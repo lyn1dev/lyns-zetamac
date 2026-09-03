@@ -1,15 +1,15 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
   <title>Zetamac - The Arithmetic Game</title>
   
-  <!-- iOS PWA Meta Tags -->
+  <!-- iOS PWA Meta Tags (Optimized for OLED Pitch Black) -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
   <meta name="apple-mobile-web-app-title" content="Zetamac">
-  <meta name="theme-color" content="#ffffff">
+  <meta name="theme-color" content="#000000">
   <meta name="mobile-web-app-capable" content="yes">
   
   <!-- App Icons -->
@@ -29,13 +29,12 @@
       <h1 id="app-title">The Arithmetic Game</h1>
       <p id="app-subtitle">A 1:1 speed arithmetic trainer for iPhone &amp; Desktop</p>
       <div class="header-controls">
-        <button id="theme-toggle-btn" class="icon-btn" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">🌙</button>
-        <button id="sound-toggle-btn" class="icon-btn" aria-label="Toggle Sound" title="Toggle Sound">🔊</button>
+        <button id="theme-toggle-btn" class="icon-btn" aria-label="Toggle Theme" title="Toggle Theme">☀️</button>
       </div>
     </header>
 
-    <!-- SCREEN 1: CONFIGURATION / SETTINGS -->
-    <main id="settings-screen" class="screen active">
+    <!-- SCREEN 1: START PAGE -->
+    <main id="start-screen" class="screen active">
 
       <!-- Daily Goal & Reminder Card -->
       <div class="card daily-goal-card">
@@ -69,8 +68,25 @@
         </div>
       </div>
 
+      <!-- Start Page Action Card -->
+      <div class="card start-actions-card">
+        <button id="start-game-btn" class="btn btn-primary btn-large">Start Game</button>
+        <button id="open-settings-btn" class="btn btn-secondary">Game Settings</button>
+
+        <div class="high-score-banner" id="start-high-score-banner">
+          Personal Best: <strong id="best-score-display">0</strong>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- SCREEN 2: GAME SETTINGS PAGE -->
+    <main id="settings-screen" class="screen">
       <div class="card settings-card">
-        <h2>Game Settings</h2>
+        <div class="settings-header">
+          <button type="button" id="close-settings-btn" class="btn-back">← Back</button>
+          <h2>Game Settings</h2>
+        </div>
         
         <div class="setting-group">
           <label for="game-duration" class="setting-label">
@@ -139,17 +155,13 @@
         </div>
 
         <div class="settings-actions">
-          <button id="start-game-btn" class="btn btn-primary btn-large">Start Game</button>
+          <button id="save-settings-btn" class="btn btn-primary">Save &amp; Back</button>
           <button id="restore-defaults-btn" class="btn btn-secondary">Restore Defaults</button>
-        </div>
-
-        <div class="high-score-banner" id="settings-high-score-banner">
-          Personal Best: <strong id="best-score-display">0</strong>
         </div>
       </div>
     </main>
 
-    <!-- SCREEN 2: ACTIVE GAMEPLAY -->
+    <!-- SCREEN 3: ACTIVE GAMEPLAY -->
     <main id="game-screen" class="screen">
       
       <!-- Top Status Bar -->
@@ -200,7 +212,7 @@
 
     </main>
 
-    <!-- SCREEN 3: GAME OVER / RESULTS -->
+    <!-- SCREEN 4: GAME OVER / RESULTS -->
     <main id="game-over-screen" class="screen">
       <div class="card results-card">
         <h2 class="results-title">Game Over!</h2>
@@ -248,7 +260,8 @@
 
         <div class="results-actions">
           <button id="play-again-btn" class="btn btn-primary btn-large">Play Again</button>
-          <button id="return-settings-btn" class="btn btn-secondary">Settings</button>
+          <button id="return-home-btn" class="btn btn-secondary">Home</button>
+          <button id="return-settings-btn" class="btn btn-text">Settings</button>
         </div>
       </div>
     </main>
