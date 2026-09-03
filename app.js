@@ -1060,6 +1060,7 @@
           updateDailyGoalUI();
           sendNotification('Hourly Reminders Active! 🔔', 'We will remind you every hour if you have completed fewer than 5 rounds today.');
         } else {
+          alert('Notification permission was not granted. Reminders cannot be enabled without permission.');
           updateDailyGoalUI();
         }
       });

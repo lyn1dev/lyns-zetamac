@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zetamac-v4';
+const CACHE_NAME = 'zetamac-v5';
 const ASSETS = [
   './',
   './index.html',
@@ -32,31 +32,41 @@ self.addEventListener('activate', (event) => {
   );
 });
 
-// Network-First with Cache Fallback: Always serve freshest version when online, fallback to cache when offline
+// Stale-While-Revalidate for local assets: Instant 0ms load from cache with background refresh
 self.addEventListener('fetch', (event) => {
   if (event.request.method !== 'GET') return;
 
+  // Do not intercept external requests (e.g. api.github.com)
+  const url = new URL(event.request.url);
+  if (url.origin !== self.location.origin) return;
+
   event.respondWith(
-    fetch(event.request)
-      .then((networkResponse) => {
-        if (networkResponse && networkResponse.status === 200) {
-          const responseToCache = networkResponse.clone();
-          caches.open(CACHE_NAME).then((cache) => {
-            cache.put(event.request, responseToCache);
-          });
-        }
-        return networkResponse;
-      })
-      .catch(() => {
-        return caches.match(event.request).then((cachedResponse) => {
-          if (cachedResponse) {
-            return cachedResponse;
+    caches.open(CACHE_NAME).then(async (cache) => {
+      const cachedResponse = await cache.match(event.request);
+
+      const fetchPromise = fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            cache.put(event.request, networkResponse.clone());
           }
-          if (event.request.mode === 'navigate') {
-            return caches.match('./index.html');
-          }
-        });
-      })
+          return networkResponse;
+        })
+        .catch(() => null);
+
+      if (cachedResponse) {
+        // Return immediately from cache, update in background
+        return cachedResponse;
+      }
+
+      // If not in cache, wait for network fetch
+      const netRes = await fetchPromise;
+      if (netRes) return netRes;
+
+      // Offline fallback for navigation
+      if (event.request.mode === 'navigate') {
+        return caches.match('./index.html');
+      }
+    })
   );
 });
 

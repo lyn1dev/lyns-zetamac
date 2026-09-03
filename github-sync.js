@@ -21,12 +21,40 @@
   const STORAGE_KEY_PENDING = 'zetamac_has_pending_sync';
   const STORAGE_KEY_CACHE = 'zetamac_local_db_cache';
   const STORAGE_KEY_PROCESSED_ROUNDS = 'zetamac_processed_round_ids';
+  const STORAGE_KEY_SHAS = 'zetamac_cached_shas';
+  const STORAGE_KEY_MUTATION_SEQ = 'zetamac_mutation_seq';
 
   // State
   let creds = null; // { token, owner, repo, deviceId }
-  let cachedShas = {}; // { 'core.json': sha, ... }
+  let cachedShas = loadCachedShas(); // { 'core.json': sha, ... }
   let isSyncing = false;
+  let currentSyncingFile = null; // 'core.json' | 'stats.json' | 'history.json' | null
   let syncListeners = [];
+
+  function loadCachedShas() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_SHAS);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {}
+    return {};
+  }
+
+  function saveCachedSha(path, sha) {
+    cachedShas[path] = sha;
+    try {
+      localStorage.setItem(STORAGE_KEY_SHAS, JSON.stringify(cachedShas));
+    } catch (e) {}
+  }
+
+  function getMutationSeq() {
+    return parseInt(localStorage.getItem(STORAGE_KEY_MUTATION_SEQ) || '0', 10);
+  }
+
+  function incrementMutationSeq() {
+    const next = getMutationSeq() + 1;
+    localStorage.setItem(STORAGE_KEY_MUTATION_SEQ, String(next));
+    return next;
+  }
 
   // Initialize or load Device ID
   function getOrCreateDeviceId() {
@@ -118,9 +146,16 @@
     return getInitialLocalData();
   }
 
+  function persistLocalDataInternal(data) {
+    try {
+      localStorage.setItem(STORAGE_KEY_CACHE, JSON.stringify(data));
+    } catch (e) {}
+  }
+
   function saveLocalData(data) {
     try {
       localStorage.setItem(STORAGE_KEY_CACHE, JSON.stringify(data));
+      incrementMutationSeq();
     } catch (e) {}
   }
 
@@ -329,7 +364,7 @@
 
       const data = await res.json();
       // Store sha
-      cachedShas[path] = data.sha;
+      if (data.sha) saveCachedSha(path, data.sha);
 
       // Check for large file or empty content fallback
       let rawContent = '';
@@ -394,7 +429,8 @@
 
       if (res.ok) {
         const resData = await res.json();
-        cachedShas[path] = resData.content?.sha || resData.commit?.sha;
+        const freshSha = resData.content?.sha || resData.commit?.sha;
+        if (freshSha) saveCachedSha(path, freshSha);
         return merged;
       }
 
@@ -406,17 +442,19 @@
   // --- Opportunistic Dying-Page Flush (visibilitychange hidden) ---
   function flushCoreOnlyOpportunistic() {
     if (!creds || !creds.token || !hasPendingSync()) return;
+    // Guard 1: If syncAll is actively in-flight writing core.json, avoid conflicting keepalive race
+    if (isSyncing && currentSyncingFile === 'core.json') return;
+    // Guard 2: If we have no cached SHA for core.json, GitHub Contents API PUT will fail with 422
+    if (!cachedShas['core.json']) return;
 
     try {
       const localData = getLocalData();
       const contentStr = window.ZetamacAnalytics.canonicalStringify(localData.core);
       const body = {
         message: `Flush core.json [skip ci]`,
-        content: unicodeToBase64(contentStr)
+        content: unicodeToBase64(contentStr),
+        sha: cachedShas['core.json']
       };
-      if (cachedShas['core.json']) {
-        body.sha = cachedShas['core.json'];
-      }
 
       const url = `https://api.github.com/repos/${creds.owner}/${creds.repo}/contents/core.json`;
       // Use keepalive: true strictly for dying page flush
@@ -444,27 +482,51 @@
     isSyncing = true;
     notifySyncListeners('syncing');
 
-    try {
-      const localData = getLocalData();
+    const startMutationSeq = getMutationSeq();
 
+    try {
       // 1. Sync core.json
-      const mergedCore = await writeFileWithCAS('core.json', localData.core, mergeCore);
-      localData.core = mergedCore;
+      currentSyncingFile = 'core.json';
+      const initialCore = getLocalData().core;
+      const mergedCore = await writeFileWithCAS('core.json', initialCore, mergeCore);
+      // Incrementally merge back into freshest local state so changes made during CAS are preserved
+      const fresh1 = getLocalData();
+      fresh1.core = mergeCore(mergedCore, fresh1.core);
+      persistLocalDataInternal(fresh1);
+
       await sleep(1000); // Pacing for GitHub secondary rate limits
 
       // 2. Sync stats.json
-      const mergedStats = await writeFileWithCAS('stats.json', localData.stats, mergeStats);
-      localData.stats = mergedStats;
+      currentSyncingFile = 'stats.json';
+      const initialStats = getLocalData().stats;
+      const mergedStats = await writeFileWithCAS('stats.json', initialStats, mergeStats);
+      const fresh2 = getLocalData();
+      fresh2.stats = mergeStats(mergedStats, fresh2.stats);
+      persistLocalDataInternal(fresh2);
+
       await sleep(1000);
 
       // 3. Sync history.json
-      const mergedHistory = await writeFileWithCAS('history.json', localData.history, mergeHistory);
-      localData.history = mergedHistory;
+      currentSyncingFile = 'history.json';
+      const initialHistory = getLocalData().history;
+      const mergedHistory = await writeFileWithCAS('history.json', initialHistory, mergeHistory);
+      const fresh3 = getLocalData();
+      fresh3.history = mergeHistory(mergedHistory, fresh3.history);
+      persistLocalDataInternal(fresh3);
 
-      // Save merged canonical snapshot locally
-      saveLocalData(localData);
-      setPendingSync(false);
-      notifySyncListeners('synced', { timestamp: Date.now() });
+      // TOCTOU Check: Verify if new local mutations occurred while syncing
+      const endMutationSeq = getMutationSeq();
+      if (endMutationSeq === startMutationSeq) {
+        setPendingSync(false);
+        notifySyncListeners('synced', { timestamp: Date.now() });
+      } else {
+        // User mutated state while sync was running; maintain pending sync and schedule catch-up
+        setPendingSync(true);
+        notifySyncListeners('pending');
+        setTimeout(() => {
+          if (!isSyncing && hasPendingSync()) syncAll();
+        }, 2500);
+      }
     } catch (err) {
       console.warn('Zetamac sync error:', err);
       if (err.message !== 'AUTH_ERROR' && err.message !== 'REPO_MISSING') {
@@ -472,6 +534,7 @@
         notifySyncListeners('offline_pending');
       }
     } finally {
+      currentSyncingFile = null;
       isSyncing = false;
     }
   }
@@ -479,6 +542,12 @@
   // Initial pull and merge on startup
   async function startupPullAndMerge() {
     if (!creds) return;
+    // If pending changes exist, execute full syncAll to push and merge
+    if (hasPendingSync()) {
+      return syncAll();
+    }
+    if (isSyncing) return;
+    isSyncing = true;
     try {
       notifySyncListeners('syncing');
       const localData = getLocalData();
@@ -492,10 +561,12 @@
       const remoteHistory = await getRemoteFile('history.json');
       if (remoteHistory) localData.history = mergeHistory(remoteHistory.json, localData.history);
 
-      saveLocalData(localData);
+      persistLocalDataInternal(localData);
       notifySyncListeners('synced', { timestamp: Date.now() });
     } catch (e) {
       console.warn('Startup pull deferred:', e);
+    } finally {
+      isSyncing = false;
     }
   }
 

@@ -353,7 +353,6 @@
     for (const cand of candidateCells) {
       const cellHist = poolHistograms(agg, cand.key, monthsWindow);
       const stats = computeHistogramStats(cellHist);
-      const baseStats = report.opBaselines[cand.op];
 
       if (!stats || stats.n < 20) {
         report.collectingData.push({
@@ -364,6 +363,23 @@
         });
         continue;
       }
+
+      // Leave-One-Out Baseline Calculation:
+      // Subtract the evaluated cell's counts from the overall operation histogram
+      // to prevent extreme latencies in this cell from inflating the baseline (self-masking).
+      const rawOpHist = poolHistograms(agg, `${cand.op}|total`, monthsWindow);
+      const adjustedOpBins = new Array(TOTAL_BINS).fill(0);
+      let adjustedN = 0;
+      for (let i = 0; i < TOTAL_BINS; i++) {
+        const remaining = Math.max(0, rawOpHist[i] - cellHist[i]);
+        adjustedOpBins[i] = remaining;
+        adjustedN += remaining;
+      }
+
+      // Use adjusted baseline if it has at least 20 trials; otherwise fall back to raw op baseline
+      const baseStats = (adjustedN >= 20)
+        ? computeHistogramStats(adjustedOpBins)
+        : report.opBaselines[cand.op];
 
       if (!baseStats || baseStats.n < 20) continue;
 
