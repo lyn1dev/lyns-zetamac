@@ -88,6 +88,14 @@ body.in-game #app-header {
   display: none !important;
 }
 
+body.in-game #app-container {
+  padding-left: 0;
+  padding-right: 0;
+  padding-bottom: 0;
+  width: 100%;
+  max-width: 500px;
+}
+
 #app-title {
   font-family: "Times New Roman", Times, Georgia, serif;
   font-size: 26px;
@@ -538,13 +546,13 @@ body.in-game #app-header {
 }
 
 /* ==========================================================================
-   CUSTOM ON-SCREEN NUMPAD (Pitch Black Buttons with Outlines)
+   CUSTOM ON-SCREEN NUMPAD (Flush Edge-to-Edge Keypad with Zero Gaps)
    ========================================================================== */
 .numpad-container {
   width: 100%;
-  max-width: 380px;
-  margin: 0 auto;
-  padding-bottom: 8px;
+  max-width: 100%;
+  margin: 0;
+  padding: 0;
   touch-action: none;
   -webkit-user-select: none;
   user-select: none;
@@ -553,7 +561,12 @@ body.in-game #app-header {
 .numpad-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
-  gap: 10px;
+  gap: 0;
+  width: 100%;
+  border-top: 1px solid var(--numpad-border);
+  border-bottom: 1px solid var(--numpad-border);
+  background: #000000;
+  box-sizing: border-box;
 }
 
 .numpad-key {
@@ -561,10 +574,12 @@ body.in-game #app-header {
   -webkit-appearance: none;
   background: #000000 !important; /* Pitch black for OLED pixel turn-off */
   color: #ffffff;
-  border: 1.5px solid var(--numpad-border);
-  border-radius: 12px;
-  height: 64px;
-  font-size: 28px;
+  border: none;
+  border-right: 1px solid var(--numpad-border);
+  border-bottom: 1px solid var(--numpad-border);
+  border-radius: 0;
+  height: clamp(66px, 8.5vh, 76px);
+  font-size: 32px;
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -573,46 +588,57 @@ body.in-game #app-header {
   user-select: none;
   -webkit-user-select: none;
   touch-action: manipulation;
-  transition: transform 0.05s ease, border-color 0.05s ease;
+  transition: background-color 0.05s ease;
+  box-sizing: border-box;
 }
 
-/* Tactile press response with outline highlight */
+/* Remove right border on the rightmost column (3, 6, 9, ⌫) */
+.numpad-key:nth-child(3n) {
+  border-right: none;
+}
+
+/* Remove bottom border on the bottom row (C, 0, ⌫) */
+.numpad-key:nth-child(n+10) {
+  border-bottom: none;
+}
+
+/* Tactile press response with high-contrast background flash (no displacement) */
 .numpad-key:active,
 .numpad-key.key-pressed {
-  border-color: #ffffff;
-  transform: translateY(2px);
+  background-color: #27272a !important;
+  color: #ffffff;
 }
 
 .numpad-action {
-  font-size: 22px;
+  font-size: 24px;
   font-weight: 600;
 }
 
 .numpad-clear {
-  border-color: var(--accent-red);
   color: var(--accent-red);
 }
 
 .numpad-clear:active,
 .numpad-clear.key-pressed {
-  border-color: #f87171;
-  color: #ffffff;
+  background-color: #3b1212 !important;
+  color: #fca5a5;
 }
 
 .numpad-backspace {
-  border-color: #71717a;
-  color: #ffffff;
-  font-size: 24px;
+  color: #e4e4e7;
+  font-size: 26px;
 }
 
 .numpad-backspace:active,
 .numpad-backspace.key-pressed {
-  border-color: #ffffff;
+  background-color: #27272a !important;
+  color: #ffffff;
 }
 
 .game-footer-actions {
   text-align: center;
-  margin-top: 14px;
+  padding: 12px 0 max(16px, env(safe-area-inset-bottom));
+  background: #000000;
 }
 
 /* ==========================================================================

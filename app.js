@@ -9,7 +9,7 @@
   'use strict';
 
   // --- App Version & Cache Reference ---
-  const APP_VERSION = 'v9';
+  const APP_VERSION = 'v10';
 
   // --- Global Database Reference ---
   let db = window.ZetamacSync.getLocalData();
