@@ -127,6 +127,11 @@
     if (screens[name]) {
       screens[name].classList.add('active');
     }
+    if (name === 'game') {
+      document.body.classList.add('in-game');
+    } else {
+      document.body.classList.remove('in-game');
+    }
   }
 
   // --- Formatting Helpers ---
