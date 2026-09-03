@@ -2,6 +2,8 @@
 
 I vibecoded myself a zetamac clone to track statistics, give myself reminders to do zetamac and stuff i guess.
 
+👉 **Play Live**: [https://lyn1dev.github.io/lyns-zetamac/](https://lyn1dev.github.io/lyns-zetamac/)
+
 ---
 
 ## ⚡ Highlights
@@ -28,48 +30,11 @@ I vibecoded myself a zetamac clone to track statistics, give myself reminders to
 
 ---
 
-## 🚀 How to Deploy
-
-Because this app uses pure HTML5, CSS3, and modern JavaScript, there are **no complex build steps or dependencies**. You can deploy it for free in seconds.
-
-### Option A: Deploy to Vercel (Recommended)
-
-#### Method 1: Using the Vercel Web Dashboard (1-Click)
-1. Push this repository to your GitHub account (already linked to `lyn1dev/lyns-zetamac`).
-2. Visit [vercel.com](https://vercel.com) and log in with GitHub.
-3. Click **"Add New..."** → **"Project"**.
-4. Select the `lyns-zetamac` repository and click **Import**.
-5. Leave all build settings at their defaults (Framework Preset: *Other*, Root Directory: `./`).
-6. Click **Deploy**. Your app will be live with a free HTTPS URL (e.g. `https://lyns-zetamac.vercel.app`).
-
-#### Method 2: Using the Vercel CLI
-Run the following in your terminal:
-```bash
-# Install Vercel CLI globally (if not already installed)
-npm install -g vercel
-
-# Deploy to production
-vercel --prod
-```
-
----
-
-### Option B: Deploy to GitHub Pages (Free)
-
-1. Go to your repository on GitHub: `https://github.com/lyn1dev/lyns-zetamac`.
-2. Click **Settings** → **Pages** (in the left sidebar).
-3. Under **Build and deployment**:
-   - **Source**: `Deploy from a branch`
-   - **Branch**: `main` / `/ (root)`
-4. Click **Save**. Within 1–2 minutes, your game will be live at `https://lyn1dev.github.io/lyns-zetamac/`.
-
----
-
 ## 📱 How to Install on iPhone (Full-Screen PWA)
 
 To play Zetamac as a standalone fullscreen app without the Safari navigation bar:
 
-1. Open **Safari** on your iPhone and navigate to your deployed website URL (e.g., `https://lyns-zetamac.vercel.app`).
+1. Open **Safari** on your iPhone and navigate to: **[https://lyn1dev.github.io/lyns-zetamac/](https://lyn1dev.github.io/lyns-zetamac/)**
 2. Tap the **Share** button (the square icon with an arrow pointing upward at the bottom of Safari).
 3. Scroll down the share sheet and tap **"Add to Home Screen"** (`➕`).
 4. (Optional) Rename the icon to **Zetamac**, then tap **Add** in the top right corner.
