@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <title>Zetamac - The Arithmetic Game</title>
+  
+  <!-- iOS PWA Meta Tags -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="Zetamac">
+  <meta name="theme-color" content="#ffffff">
+  <meta name="mobile-web-app-capable" content="yes">
+  
+  <!-- App Icons -->
+  <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+  <link rel="apple-touch-icon" sizes="180x180" href="icons/apple-touch-icon.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+  <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+  <link rel="manifest" href="manifest.json">
+  
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div id="app-container">
+    
+    <!-- HEADER -->
+    <header id="app-header">
+      <h1 id="app-title">The Arithmetic Game</h1>
+      <p id="app-subtitle">A 1:1 speed arithmetic trainer for iPhone &amp; Desktop</p>
+      <div class="header-controls">
+        <button id="theme-toggle-btn" class="icon-btn" aria-label="Toggle Dark Mode" title="Toggle Dark/Light Mode">🌙</button>
+        <button id="sound-toggle-btn" class="icon-btn" aria-label="Toggle Sound" title="Toggle Sound">🔊</button>
+      </div>
+    </header>
+
+    <!-- SCREEN 1: CONFIGURATION / SETTINGS -->
+    <main id="settings-screen" class="screen active">
+      <div class="card settings-card">
+        <h2>Game Settings</h2>
+        
+        <div class="setting-group">
+          <label for="game-duration" class="setting-label">
+            <strong>Duration:</strong>
+            <span class="setting-value"><input type="number" id="game-duration" value="120" min="5" max="600" step="5"> seconds</span>
+          </label>
+        </div>
+
+        <div class="setting-group">
+          <span class="setting-label"><strong>Operations:</strong></span>
+          <div class="operations-list">
+            
+            <!-- Addition -->
+            <div class="operation-item">
+              <label class="checkbox-container">
+                <input type="checkbox" id="op-add" checked>
+                <span class="checkmark"></span>
+                <span class="op-name">Addition:</span>
+              </label>
+              <div class="range-inputs">
+                <input type="number" id="add-min-1" value="2" min="1" max="999"> to 
+                <input type="number" id="add-max-1" value="100" min="1" max="999">
+                <span class="range-sep">+</span>
+                <input type="number" id="add-min-2" value="2" min="1" max="999"> to 
+                <input type="number" id="add-max-2" value="100" min="1" max="999">
+              </div>
+            </div>
+
+            <!-- Multiplication -->
+            <div class="operation-item">
+              <label class="checkbox-container">
+                <input type="checkbox" id="op-mult" checked>
+                <span class="checkmark"></span>
+                <span class="op-name">Multiplication:</span>
+              </label>
+              <div class="range-inputs">
+                <input type="number" id="mult-min-1" value="2" min="1" max="999"> to 
+                <input type="number" id="mult-max-1" value="12" min="1" max="999">
+                <span class="range-sep">×</span>
+                <input type="number" id="mult-min-2" value="2" min="1" max="999"> to 
+                <input type="number" id="mult-max-2" value="100" min="1" max="999">
+              </div>
+            </div>
+
+            <!-- Subtraction -->
+            <div class="operation-item">
+              <label class="checkbox-container">
+                <input type="checkbox" id="op-sub" checked>
+                <span class="checkmark"></span>
+                <span class="op-name">Subtraction:</span>
+              </label>
+              <div class="range-note">(inversion of addition)</div>
+            </div>
+
+            <!-- Division -->
+            <div class="operation-item">
+              <label class="checkbox-container">
+                <input type="checkbox" id="op-div" checked>
+                <span class="checkmark"></span>
+                <span class="op-name">Division:</span>
+              </label>
+              <div class="range-note">(inversion of multiplication)</div>
+            </div>
+
+          </div>
+        </div>
+
+        <div class="settings-actions">
+          <button id="start-game-btn" class="btn btn-primary btn-large">Start Game</button>
+          <button id="restore-defaults-btn" class="btn btn-secondary">Restore Defaults</button>
+        </div>
+
+        <div class="high-score-banner" id="settings-high-score-banner">
+          Personal Best: <strong id="best-score-display">0</strong>
+        </div>
+      </div>
+    </main>
+
+    <!-- SCREEN 2: ACTIVE GAMEPLAY -->
+    <main id="game-screen" class="screen">
+      
+      <!-- Top Status Bar -->
+      <div class="game-status-bar">
+        <div class="status-box timer-box">
+          <span class="status-label">Seconds left:</span>
+          <span id="game-timer" class="status-value">120</span>
+        </div>
+        <div class="status-box score-box">
+          <span class="status-label">Score:</span>
+          <span id="game-score" class="status-value">0</span>
+        </div>
+      </div>
+
+      <!-- Problem and Virtual Input Display -->
+      <div class="problem-container">
+        <div id="problem-prompt" class="problem-prompt">47 + 68 =</div>
+        <div id="virtual-answer-box" class="virtual-answer-box">
+          <span id="virtual-answer-text"></span>
+          <span class="cursor"></span>
+        </div>
+      </div>
+
+      <!-- Custom Mobile Numpad (Sole Input Method on Mobile) -->
+      <div id="numpad-container" class="numpad-container">
+        <div class="numpad-grid">
+          <button type="button" class="numpad-key" data-key="1">1</button>
+          <button type="button" class="numpad-key" data-key="2">2</button>
+          <button type="button" class="numpad-key" data-key="3">3</button>
+          
+          <button type="button" class="numpad-key" data-key="4">4</button>
+          <button type="button" class="numpad-key" data-key="5">5</button>
+          <button type="button" class="numpad-key" data-key="6">6</button>
+          
+          <button type="button" class="numpad-key" data-key="7">7</button>
+          <button type="button" class="numpad-key" data-key="8">8</button>
+          <button type="button" class="numpad-key" data-key="9">9</button>
+          
+          <button type="button" class="numpad-key numpad-action numpad-clear" data-key="clear" title="Clear">C</button>
+          <button type="button" class="numpad-key" data-key="0">0</button>
+          <button type="button" class="numpad-key numpad-action numpad-backspace" data-key="backspace" title="Backspace">⌫</button>
+        </div>
+        
+        <div class="game-footer-actions">
+          <button type="button" id="abort-game-btn" class="btn-text">End Game</button>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- SCREEN 3: GAME OVER / RESULTS -->
+    <main id="game-over-screen" class="screen">
+      <div class="card results-card">
+        <h2 class="results-title">Game Over!</h2>
+        
+        <div class="final-score-container">
+          <div class="final-score-label">Final Score</div>
+          <div id="final-score-number" class="final-score-number">0</div>
+          <div id="new-record-badge" class="new-record-badge hidden">🏆 NEW PERSONAL BEST!</div>
+        </div>
+
+        <div class="stats-grid">
+          <div class="stat-card">
+            <span class="stat-label">Pace</span>
+            <span id="stat-pace" class="stat-val">0.0s / problem</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Speed</span>
+            <span id="stat-ppm" class="stat-val">0.0 / min</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Duration</span>
+            <span id="stat-duration" class="stat-val">120s</span>
+          </div>
+          <div class="stat-card">
+            <span class="stat-label">Personal Best</span>
+            <span id="stat-personal-best" class="stat-val">0</span>
+          </div>
+        </div>
+
+        <div class="results-actions">
+          <button id="play-again-btn" class="btn btn-primary btn-large">Play Again</button>
+          <button id="return-settings-btn" class="btn btn-secondary">Settings</button>
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
