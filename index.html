@@ -28,15 +28,27 @@
     <header id="app-header">
       <h1 id="app-title">The Arithmetic Game</h1>
       <p id="app-subtitle">A 1:1 speed arithmetic trainer for iPhone &amp; Desktop</p>
-      <div class="header-controls">
-        <button id="theme-toggle-btn" class="icon-btn" aria-label="Toggle Theme" title="Toggle Theme">☀️</button>
-      </div>
     </header>
 
     <!-- SCREEN 1: START PAGE -->
     <main id="start-screen" class="screen active">
 
-      <!-- Daily Goal & Reminder Card -->
+      <!-- Start Page Action Card -->
+      <div class="card start-actions-card">
+        <button id="start-game-btn" class="btn btn-primary btn-large">Start Game</button>
+        <button id="open-settings-btn" class="btn btn-secondary">Game Settings</button>
+
+        <div class="high-score-banner" id="start-high-score-banner">
+          Personal Best: <strong id="best-score-display">0</strong>
+        </div>
+      </div>
+
+    </main>
+
+    <!-- SCREEN 2: GAME SETTINGS PAGE -->
+    <main id="settings-screen" class="screen">
+
+      <!-- Daily Goal & Reminder Card (Moved to Settings) -->
       <div class="card daily-goal-card">
         <div class="daily-goal-header">
           <div>
@@ -68,20 +80,6 @@
         </div>
       </div>
 
-      <!-- Start Page Action Card -->
-      <div class="card start-actions-card">
-        <button id="start-game-btn" class="btn btn-primary btn-large">Start Game</button>
-        <button id="open-settings-btn" class="btn btn-secondary">Game Settings</button>
-
-        <div class="high-score-banner" id="start-high-score-banner">
-          Personal Best: <strong id="best-score-display">0</strong>
-        </div>
-      </div>
-
-    </main>
-
-    <!-- SCREEN 2: GAME SETTINGS PAGE -->
-    <main id="settings-screen" class="screen">
       <div class="card settings-card">
         <div class="settings-header">
           <button type="button" id="close-settings-btn" class="btn-back">← Back</button>

@@ -6,7 +6,7 @@
 (() => {
   'use strict';
 
-  // --- Default Configuration (Default to OLED Pitch Black Dark Mode) ---
+  // --- Default Configuration (Pure OLED Pitch Black) ---
   const DEFAULT_SETTINGS = {
     duration: 120,
     addEnabled: true,
@@ -20,8 +20,7 @@
     multMin2: 2,
     multMax2: 100,
     subEnabled: true,
-    divEnabled: true,
-    theme: 'dark'
+    divEnabled: true
   };
 
   // State
@@ -45,9 +44,6 @@
   };
 
   const el = {
-    // Header
-    themeToggleBtn: document.getElementById('theme-toggle-btn'),
-
     // Start Screen Elements
     startBtn: document.getElementById('start-game-btn'),
     openSettingsBtn: document.getElementById('open-settings-btn'),
@@ -186,9 +182,7 @@
     el.opDiv.checked = settings.divEnabled;
 
     el.bestScoreDisplay.textContent = highScore;
-
-    document.documentElement.setAttribute('data-theme', settings.theme);
-    el.themeToggleBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
+    document.documentElement.setAttribute('data-theme', 'dark');
   }
 
   function readSettingsFromUI() {
@@ -660,16 +654,8 @@
   });
 
   el.restoreDefaultsBtn.addEventListener('click', () => {
-    settings = { ...DEFAULT_SETTINGS, theme: settings.theme };
+    settings = { ...DEFAULT_SETTINGS };
     applySettingsToUI();
-    saveSettings();
-  });
-
-  // Theme Toggle
-  el.themeToggleBtn.addEventListener('click', () => {
-    settings.theme = settings.theme === 'dark' ? 'light' : 'dark';
-    document.documentElement.setAttribute('data-theme', settings.theme);
-    el.themeToggleBtn.textContent = settings.theme === 'dark' ? '☀️' : '🌙';
     saveSettings();
   });
 
