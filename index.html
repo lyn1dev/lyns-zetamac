@@ -79,6 +79,18 @@
             <span id="reminder-toggle-label">Enable Reminders</span>
           </button>
         </div>
+
+        <div id="reminder-hours-row" class="reminder-hours-row">
+          <div class="reminder-info">
+            <strong>Active Hours</strong>
+            <span class="reminder-subtext">Quiet hours outside this window</span>
+          </div>
+          <div class="reminder-time-inputs">
+            <input type="time" id="reminder-start-time" value="09:00" class="time-input">
+            <span class="range-sep">to</span>
+            <input type="time" id="reminder-end-time" value="22:00" class="time-input">
+          </div>
+        </div>
       </div>
 
       <div class="card settings-card">
@@ -161,7 +173,7 @@
         <div class="settings-version-footer">
           <div class="version-info">
             <span class="version-label">App Version:</span>
-            <span id="app-version-badge" class="version-badge">v12</span>
+            <span id="app-version-badge" class="version-badge">v13</span>
           </div>
           <button type="button" id="check-update-btn" class="btn-text btn-update-check">Check for Updates</button>
         </div>

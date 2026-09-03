@@ -120,7 +120,9 @@
           date: new Date().toISOString().slice(0, 10),
           rounds: 0,
           lastReminderTime: 0,
-          remindersEnabled: false
+          remindersEnabled: false,
+          reminderStart: '09:00',
+          reminderEnd: '22:00'
         },
         personalBests: [],
         achievements: {}
@@ -250,6 +252,10 @@
     if (remote.dailyStats && remote.dailyStats.date === mergedDaily.date) {
       mergedDaily.rounds = Math.max(mergedDaily.rounds || 0, remote.dailyStats.rounds || 0);
       mergedDaily.lastReminderTime = Math.max(mergedDaily.lastReminderTime || 0, remote.dailyStats.lastReminderTime || 0);
+    }
+    if (remote.dailyStats) {
+      if (remote.dailyStats.reminderStart) mergedDaily.reminderStart = remote.dailyStats.reminderStart;
+      if (remote.dailyStats.reminderEnd) mergedDaily.reminderEnd = remote.dailyStats.reminderEnd;
     }
 
     return {

@@ -9,7 +9,7 @@
   'use strict';
 
   // --- App Version & Cache Reference ---
-  const APP_VERSION = 'v12';
+  const APP_VERSION = 'v13';
 
   // --- Global Database Reference ---
   let db = window.ZetamacSync.getLocalData();
@@ -72,6 +72,8 @@
     goalStatusMessage: document.getElementById('goal-status-message'),
     reminderToggleBtn: document.getElementById('reminder-toggle-btn'),
     reminderToggleLabel: document.getElementById('reminder-toggle-label'),
+    reminderStartTime: document.getElementById('reminder-start-time'),
+    reminderEndTime: document.getElementById('reminder-end-time'),
 
     // Game Screen
     gameTimer: document.getElementById('game-timer'),
@@ -166,6 +168,24 @@
     });
   }
 
+  function isCurrentTimeInWindow(startTimeStr, endTimeStr) {
+    const now = new Date();
+    const currentMinutes = now.getHours() * 60 + now.getMinutes();
+
+    const [startH, startM] = (startTimeStr || '09:00').split(':').map(Number);
+    const [endH, endM] = (endTimeStr || '22:00').split(':').map(Number);
+
+    const startMinutes = (isNaN(startH) ? 9 : startH) * 60 + (isNaN(startM) ? 0 : startM);
+    const endMinutes = (isNaN(endH) ? 22 : endH) * 60 + (isNaN(endM) ? 0 : endM);
+
+    if (startMinutes <= endMinutes) {
+      return currentMinutes >= startMinutes && currentMinutes < endMinutes;
+    } else {
+      // Overnight active window
+      return currentMinutes >= startMinutes || currentMinutes < endMinutes;
+    }
+  }
+
   // --- Database Accessors & Cache ---
   function reloadDbFromCache() {
     db = window.ZetamacSync.getLocalData();
@@ -205,6 +225,10 @@
     el.opSub.checked = s.subEnabled;
     el.opDiv.checked = s.divEnabled;
 
+    const ds = db.core.dailyStats || {};
+    if (el.reminderStartTime) el.reminderStartTime.value = ds.reminderStart || '09:00';
+    if (el.reminderEndTime) el.reminderEndTime.value = ds.reminderEnd || '22:00';
+
     if (el.appVersionBadge) {
       el.appVersionBadge.textContent = APP_VERSION;
     }
@@ -231,6 +255,12 @@
 
     s.subEnabled = el.opSub.checked;
     s.divEnabled = el.opDiv.checked;
+
+    if (el.reminderStartTime && el.reminderEndTime) {
+      db.core.dailyStats = db.core.dailyStats || {};
+      db.core.dailyStats.reminderStart = el.reminderStartTime.value || '09:00';
+      db.core.dailyStats.reminderEnd = el.reminderEndTime.value || '22:00';
+    }
 
     if (!s.addEnabled && !s.multEnabled && !s.subEnabled && !s.divEnabled) {
       s.addEnabled = true;
@@ -312,6 +342,8 @@
   function checkAndSendHourlyReminder() {
     const ds = db.core.dailyStats;
     if (!ds.remindersEnabled) return;
+
+    // Date rollover: reset daily count quietly at midnight without sending a notification
     const today = getTodayDateString();
     if (ds.date !== today) {
       ds.date = today;
@@ -320,6 +352,13 @@
       updateDailyGoalUI();
     }
     if (ds.rounds >= 5) return;
+
+    // Quiet hours: strictly enforce user-configured active hours window (default: 09:00 - 22:00)
+    const startStr = ds.reminderStart || '09:00';
+    const endStr = ds.reminderEnd || '22:00';
+    if (!isCurrentTimeInWindow(startStr, endStr)) {
+      return; // Quiet hours: stay silent
+    }
 
     const now = Date.now();
     const oneHourMs = 60 * 60 * 1000;
@@ -1153,8 +1192,22 @@
   el.restoreDefaultsBtn.addEventListener('click', () => {
     const defaultData = window.ZetamacSync.getLocalData();
     db.core.settings = defaultData.core.settings;
+    if (db.core.dailyStats) {
+      db.core.dailyStats.reminderStart = '09:00';
+      db.core.dailyStats.reminderEnd = '22:00';
+    }
     applySettingsToUI();
     readSettingsFromUI();
+  });
+
+  [el.reminderStartTime, el.reminderEndTime].forEach((input) => {
+    if (!input) return;
+    input.addEventListener('change', () => {
+      db.core.dailyStats = db.core.dailyStats || {};
+      db.core.dailyStats.reminderStart = el.reminderStartTime.value || '09:00';
+      db.core.dailyStats.reminderEnd = el.reminderEndTime.value || '22:00';
+      window.ZetamacSync.saveLocalData(db);
+    });
   });
 
   // Sub-tab switcher in Statistics screen
