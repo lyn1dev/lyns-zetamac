@@ -82,6 +82,7 @@ html, body {
   padding: 8px 0 16px;
   border-bottom: 1px solid var(--border-color);
   background: var(--bg-color);
+  flex-shrink: 0;
 }
 
 body.in-game {
@@ -148,15 +149,38 @@ body.in-game #app-container {
 }
 
 /* ==========================================================================
-   START PAGE
+   START PAGE (Zero Scrolling, Precise Viewport Fit)
    ========================================================================== */
+body[data-screen="start"] {
+  height: 100vh;
+  height: 100dvh;
+  overflow: hidden !important;
+  overscroll-behavior: none !important;
+  position: fixed;
+  width: 100vw;
+  top: 0;
+  left: 0;
+}
+
+body[data-screen="start"] #app-container {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0 !important;
+  max-height: 100dvh;
+  overflow: hidden !important;
+  box-sizing: border-box;
+}
+
 #start-screen.active {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   align-items: center;
   flex: 1;
-  padding: 16px 0 8px;
+  min-height: 0;
+  overflow: hidden;
+  padding: 12px 0 4px;
+  box-sizing: border-box;
 }
 
 .start-center-container {
@@ -166,12 +190,13 @@ body.in-game #app-container {
   justify-content: center;
   flex: 1;
   width: 100%;
+  min-height: 0;
 }
 
 #start-game-btn {
   font-size: 22px;
   font-weight: 700;
-  padding: 20px 36px;
+  padding: 18px 36px;
   letter-spacing: 0.5px;
   width: 100%;
   max-width: 320px;
@@ -184,12 +209,14 @@ body.in-game #app-container {
   gap: 10px;
   width: 100%;
   margin-top: auto;
+  flex-shrink: 0;
+  padding-bottom: max(4px, env(safe-area-inset-bottom));
 }
 
 .start-bottom-actions .btn {
   width: 100%;
   font-size: 15px;
-  padding: 13px;
+  padding: 12px;
 }
 
 /* ==========================================================================

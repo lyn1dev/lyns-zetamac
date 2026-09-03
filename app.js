@@ -9,7 +9,7 @@
   'use strict';
 
   // --- App Version & Cache Reference ---
-  const APP_VERSION = 'v11';
+  const APP_VERSION = 'v12';
 
   // --- Global Database Reference ---
   let db = window.ZetamacSync.getLocalData();
@@ -132,6 +132,7 @@
     if (screens[name]) {
       screens[name].classList.add('active');
     }
+    document.body.setAttribute('data-screen', name);
     if (name === 'game') {
       document.body.classList.add('in-game');
     } else {
@@ -1052,9 +1053,10 @@
     window.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
   });
 
-  // Disable rubber-band bounce scroll on document level during active gameplay
+  // Disable rubber-band bounce scroll on document level during active gameplay and on main start screen
   document.addEventListener('touchmove', (e) => {
-    if (gameState === 'running') {
+    const activeScreen = document.body.getAttribute('data-screen');
+    if (gameState === 'running' || activeScreen === 'start') {
       e.preventDefault();
     }
   }, { passive: false });
