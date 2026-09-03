@@ -170,7 +170,9 @@
 
   function updateBestScoreDisplay() {
     const best = getHighScore();
-    el.bestScoreDisplay.textContent = best;
+    if (el.bestScoreDisplay) {
+      el.bestScoreDisplay.textContent = best;
+    }
   }
 
   // --- Settings Synchronization ---
