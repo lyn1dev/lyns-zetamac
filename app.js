@@ -715,10 +715,20 @@
       navigator.serviceWorker.register('./sw.js')
         .then((reg) => {
           console.log('Zetamac ServiceWorker registered:', reg.scope);
+          // Force update check on every load
+          reg.update();
         })
         .catch((err) => {
           console.warn('ServiceWorker registration failed:', err);
         });
+    });
+
+    let refreshing = false;
+    navigator.serviceWorker.addEventListener('controllerchange', () => {
+      if (!refreshing) {
+        refreshing = true;
+        window.location.reload();
+      }
     });
   }
 
