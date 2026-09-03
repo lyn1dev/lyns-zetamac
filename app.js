@@ -828,17 +828,22 @@
       const drawer = document.createElement('div');
       drawer.className = 'history-problems-drawer';
 
-      (round.p || []).forEach((prob) => {
+      (round.p || []).forEach((prob, idx) => {
         const [opIndex, a, b, totalMs, firstKeyMs, corr] = prob;
         const opSym = ['+', '–', '×', '÷'][opIndex] || '+';
-        const chip = document.createElement('div');
-        chip.className = 'problem-chip';
-        chip.innerHTML = `
-          <span class="problem-chip-prompt">${a} ${opSym} ${b}</span>
-          <span class="problem-chip-time">${(firstKeyMs / 1000).toFixed(2)}s</span>
-          ${corr > 0 ? `<span class="problem-chip-corr">(${corr} fix)</span>` : ''}
+        const row = document.createElement('div');
+        row.className = 'problem-row';
+        row.innerHTML = `
+          <div class="problem-row-left">
+            <span class="problem-row-index">#${idx + 1}</span>
+            <span class="problem-row-prompt">${a} ${opSym} ${b}</span>
+          </div>
+          <div class="problem-row-right">
+            <span class="problem-row-time">${(firstKeyMs / 1000).toFixed(2)}s</span>
+            ${corr > 0 ? `<span class="problem-row-corr">(${corr} fix)</span>` : ''}
+          </div>
         `;
-        drawer.appendChild(chip);
+        drawer.appendChild(row);
       });
 
       item.appendChild(summary);

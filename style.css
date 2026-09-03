@@ -1170,41 +1170,65 @@ html, body {
 
 .history-problems-drawer {
   display: none;
-  padding: 12px;
+  padding: 8px;
   border-top: 1px solid var(--border-color);
   background: #050507;
-  flex-wrap: wrap;
-  gap: 6px;
+  flex-direction: column;
+  gap: 4px;
 }
 
 .history-round-item.open .history-problems-drawer {
   display: flex;
 }
 
-.problem-chip {
-  display: inline-flex;
+.problem-row {
+  display: flex;
   align-items: center;
-  gap: 6px;
+  justify-content: space-between;
   background: #000000;
-  border: 1px solid #27272a;
+  border: 1px solid #1c1c1f;
   border-radius: 6px;
-  padding: 4px 8px;
+  padding: 6px 10px;
   font-family: monospace;
-  font-size: 12px;
+  font-size: 13px;
+  transition: border-color 0.15s ease;
 }
 
-.problem-chip-prompt {
+.problem-row:hover {
+  border-color: #3f3f46;
+}
+
+.problem-row-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.problem-row-index {
+  color: var(--text-muted);
+  font-size: 11px;
+  min-width: 26px;
+}
+
+.problem-row-prompt {
   color: #ffffff;
+  font-weight: 600;
 }
 
-.problem-chip-time {
+.problem-row-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.problem-row-time {
   color: #38bdf8;
   font-weight: 600;
 }
 
-.problem-chip-corr {
+.problem-row-corr {
   color: #f43f5e;
-  font-size: 10px;
+  font-size: 11px;
 }
 
 /* Personal Best Timeline */
