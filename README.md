@@ -17,6 +17,11 @@ I vibecoded myself a zetamac clone to track statistics, give myself reminders to
   - Zero mobile keyboard pop-ups—the iOS software keyboard will never slide up or shift your viewport.
   - Ultra-fast `pointerdown` response with zero 300ms tap delay and tactile press feedback.
 - **Resilient Timestamp-Diffing Timer**: Uses `Date.now() - startTime` delta checks alongside `requestAnimationFrame` and fallback interval ticks, ensuring 100% timer precision even if iOS Safari dims or background-throttles the tab.
+- **Daily Goal & Hourly Reminders**:
+  - Automatically tracks your daily practice (target: **5 rounds/day**).
+  - If you haven't completed at least 5 rounds in the day, the app reminds you every hour (`Time for Zetamac! 🧮`).
+  - Web Notifications integrated via Service Worker for iOS 16.4+ standalone PWAs.
+  - Automatically resets at midnight and silences hourly alerts once your 5 rounds are completed.
 - **100% Offline PWA**: Built-in Service Worker caches all assets for offline play on flights or commutes.
 - **Retina Icons & Safe Area Support**: Seamlessly fits the iPhone notch, dynamic island, and home swipe bar.
 - **Personal Best & Stats**: Automatically records your high scores and calculates pace (seconds per problem and problems per minute).

@@ -36,6 +36,39 @@
 
     <!-- SCREEN 1: CONFIGURATION / SETTINGS -->
     <main id="settings-screen" class="screen active">
+
+      <!-- Daily Goal & Reminder Card -->
+      <div class="card daily-goal-card">
+        <div class="daily-goal-header">
+          <div>
+            <h3 class="daily-goal-title">Daily Goal</h3>
+            <div class="daily-goal-subtitle">Complete at least 5 rounds daily</div>
+          </div>
+          <div class="daily-goal-count"><span id="daily-rounds-count">0</span> / 5</div>
+        </div>
+
+        <!-- 5-segment progress bar -->
+        <div class="goal-progress-bar" id="goal-progress-bar">
+          <div class="progress-segment" data-index="1"></div>
+          <div class="progress-segment" data-index="2"></div>
+          <div class="progress-segment" data-index="3"></div>
+          <div class="progress-segment" data-index="4"></div>
+          <div class="progress-segment" data-index="5"></div>
+        </div>
+
+        <div id="goal-status-message" class="goal-status-message">0 of 5 rounds completed today</div>
+
+        <div class="reminder-control-row">
+          <div class="reminder-info">
+            <strong>Hourly Reminders</strong>
+            <span class="reminder-subtext">Alerts every hour if &lt; 5 rounds done</span>
+          </div>
+          <button type="button" id="reminder-toggle-btn" class="btn-toggle">
+            <span id="reminder-toggle-label">Enable Reminders</span>
+          </button>
+        </div>
+      </div>
+
       <div class="card settings-card">
         <h2>Game Settings</h2>
         
@@ -176,6 +209,22 @@
           <div class="final-score-label">Final Score</div>
           <div id="final-score-number" class="final-score-number">0</div>
           <div id="new-record-badge" class="new-record-badge hidden">🏆 NEW PERSONAL BEST!</div>
+        </div>
+
+        <!-- Daily Goal Progress on Results Screen -->
+        <div class="daily-progress-banner" id="results-daily-banner">
+          <div class="daily-banner-info">
+            <span class="daily-banner-label">Daily Goal Progress:</span>
+            <span class="daily-banner-count"><strong id="results-daily-count">1</strong> / 5 rounds</span>
+          </div>
+          <div class="goal-progress-bar goal-progress-bar-compact" id="results-progress-bar">
+            <div class="progress-segment" data-index="1"></div>
+            <div class="progress-segment" data-index="2"></div>
+            <div class="progress-segment" data-index="3"></div>
+            <div class="progress-segment" data-index="4"></div>
+            <div class="progress-segment" data-index="5"></div>
+          </div>
+          <div id="results-goal-msg" class="results-goal-msg">Keep going! 4 more rounds to reach your daily goal.</div>
         </div>
 
         <div class="stats-grid">

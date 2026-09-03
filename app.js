@@ -91,6 +91,13 @@
     themeToggleBtn: document.getElementById('theme-toggle-btn'),
     soundToggleBtn: document.getElementById('sound-toggle-btn'),
 
+    // Daily Goal & Reminder elements
+    dailyRoundsCount: document.getElementById('daily-rounds-count'),
+    goalProgressBar: document.getElementById('goal-progress-bar'),
+    goalStatusMessage: document.getElementById('goal-status-message'),
+    reminderToggleBtn: document.getElementById('reminder-toggle-btn'),
+    reminderToggleLabel: document.getElementById('reminder-toggle-label'),
+
     // Gameplay elements
     gameTimer: document.getElementById('game-timer'),
     gameScore: document.getElementById('game-score'),
@@ -108,7 +115,25 @@
     statDuration: document.getElementById('stat-duration'),
     statPersonalBest: document.getElementById('stat-personal-best'),
     playAgainBtn: document.getElementById('play-again-btn'),
-    returnSettingsBtn: document.getElementById('return-settings-btn')
+    returnSettingsBtn: document.getElementById('return-settings-btn'),
+    resultsDailyCount: document.getElementById('results-daily-count'),
+    resultsProgressBar: document.getElementById('results-progress-bar'),
+    resultsGoalMsg: document.getElementById('results-goal-msg')
+  };
+
+  function getTodayDateString() {
+    const now = new Date();
+    const y = now.getFullYear();
+    const m = String(now.getMonth() + 1).padStart(2, '0');
+    const d = String(now.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+  }
+
+  let dailyStats = {
+    date: getTodayDateString(),
+    rounds: 0,
+    lastReminderTime: 0,
+    remindersEnabled: false
   };
 
   // --- Storage & Initialization ---
@@ -121,6 +146,22 @@
       const savedHigh = localStorage.getItem('zetamac_high_score');
       if (savedHigh) {
         highScore = parseInt(savedHigh, 10) || 0;
+      }
+      const savedDaily = localStorage.getItem('zetamac_daily_stats');
+      if (savedDaily) {
+        const parsed = JSON.parse(savedDaily);
+        const today = getTodayDateString();
+        if (parsed.date === today) {
+          dailyStats = { ...dailyStats, ...parsed };
+        } else {
+          dailyStats = {
+            date: today,
+            rounds: 0,
+            lastReminderTime: parsed.lastReminderTime || 0,
+            remindersEnabled: parsed.remindersEnabled || false
+          };
+          saveDailyStats();
+        }
       }
     } catch (e) {
       console.warn('LocalStorage unavailable:', e);
@@ -138,6 +179,121 @@
     try {
       localStorage.setItem('zetamac_high_score', String(highScore));
     } catch (e) {}
+  }
+
+  function saveDailyStats() {
+    try {
+      localStorage.setItem('zetamac_daily_stats', JSON.stringify(dailyStats));
+    } catch (e) {}
+  }
+
+  function updateDailyGoalUI() {
+    if (!el.dailyRoundsCount || !el.goalProgressBar) return;
+    
+    // 1. Settings screen count
+    el.dailyRoundsCount.textContent = dailyStats.rounds;
+
+    // 2. Settings screen 5-segment bar
+    const segments = el.goalProgressBar.querySelectorAll('.progress-segment');
+    segments.forEach((seg, idx) => {
+      seg.classList.toggle('completed', idx < dailyStats.rounds);
+    });
+
+    // 3. Goal status message
+    if (dailyStats.rounds >= 5) {
+      el.goalStatusMessage.textContent = `🎉 Daily goal achieved! (${dailyStats.rounds}/5 rounds completed today)`;
+      el.goalStatusMessage.classList.add('goal-reached');
+    } else {
+      const remaining = 5 - dailyStats.rounds;
+      el.goalStatusMessage.textContent = `${dailyStats.rounds} of 5 rounds completed today (${remaining} more to reach goal)`;
+      el.goalStatusMessage.classList.remove('goal-reached');
+    }
+
+    // 4. Reminder toggle button state
+    if (!('Notification' in window)) {
+      el.reminderToggleBtn.className = 'btn-toggle';
+      el.reminderToggleLabel.textContent = 'Not Supported';
+      el.reminderToggleBtn.disabled = true;
+    } else if (Notification.permission === 'denied') {
+      el.reminderToggleBtn.className = 'btn-toggle';
+      el.reminderToggleLabel.textContent = 'Notifications Blocked';
+      el.reminderToggleBtn.title = 'Enable notifications in iPhone Settings > Safari';
+    } else if (Notification.permission !== 'granted') {
+      el.reminderToggleBtn.className = 'btn-toggle needs-permission';
+      el.reminderToggleLabel.textContent = 'Enable Reminders';
+    } else {
+      if (dailyStats.remindersEnabled) {
+        el.reminderToggleBtn.className = 'btn-toggle active';
+        el.reminderToggleLabel.textContent = 'Reminders: ON';
+      } else {
+        el.reminderToggleBtn.className = 'btn-toggle';
+        el.reminderToggleLabel.textContent = 'Reminders: OFF';
+      }
+    }
+
+    // 5. Results screen daily banner
+    if (el.resultsDailyCount && el.resultsProgressBar) {
+      el.resultsDailyCount.textContent = dailyStats.rounds;
+      const resSegments = el.resultsProgressBar.querySelectorAll('.progress-segment');
+      resSegments.forEach((seg, idx) => {
+        seg.classList.toggle('completed', idx < dailyStats.rounds);
+      });
+      if (dailyStats.rounds >= 5) {
+        el.resultsGoalMsg.textContent = '🎉 Daily Goal Complete! 5/5 rounds done today.';
+      } else {
+        const left = 5 - dailyStats.rounds;
+        el.resultsGoalMsg.textContent = `Keep going! ${left} more round${left > 1 ? 's' : ''} to reach your daily goal.`;
+      }
+    }
+  }
+
+  // --- Notification System ---
+  function sendNotification(title, body) {
+    const options = {
+      body: body,
+      icon: 'icons/icon-192.png',
+      badge: 'icons/icon-192.png',
+      tag: 'zetamac-hourly-reminder',
+      renotify: true,
+      data: { url: './' }
+    };
+
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.ready.then((reg) => {
+        reg.showNotification(title, options);
+      }).catch(() => {
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, options);
+        }
+      });
+    } else if ('Notification' in window && Notification.permission === 'granted') {
+      new Notification(title, options);
+    }
+  }
+
+  function checkAndSendHourlyReminder() {
+    const today = getTodayDateString();
+    if (dailyStats.date !== today) {
+      dailyStats.date = today;
+      dailyStats.rounds = 0;
+      saveDailyStats();
+      updateDailyGoalUI();
+    }
+
+    if (!dailyStats.remindersEnabled) return;
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    if (dailyStats.rounds >= 5) return; // Daily goal achieved
+
+    const now = Date.now();
+    const oneHourMs = 60 * 60 * 1000;
+    if (now - dailyStats.lastReminderTime >= oneHourMs) {
+      dailyStats.lastReminderTime = now;
+      saveDailyStats();
+      const remaining = 5 - dailyStats.rounds;
+      const title = 'Time for Zetamac! 🧮';
+      const body = `You've done ${dailyStats.rounds}/5 rounds today. Complete ${remaining} more to hit your daily goal!`;
+      sendNotification(title, body);
+    }
   }
 
   function applySettingsToUI() {
@@ -437,7 +593,23 @@
     el.statPersonalBest.textContent = highScore;
     el.bestScoreDisplay.textContent = highScore;
 
-    playBeep(isNewBest ? 1046 : 523, 0.12);
+    // Record daily completed round
+    const today = getTodayDateString();
+    if (dailyStats.date !== today) {
+      dailyStats.date = today;
+      dailyStats.rounds = 0;
+    }
+    dailyStats.rounds++;
+    saveDailyStats();
+    updateDailyGoalUI();
+
+    // If reached 5th round, play celebration chime
+    if (dailyStats.rounds === 5) {
+      playBeep(1174, 0.18);
+    } else {
+      playBeep(isNewBest ? 1046 : 523, 0.12);
+    }
+
     showScreen('gameOver');
   }
 
@@ -530,6 +702,37 @@
     saveSettings();
   });
 
+  // Reminder Toggle Button (Requests permission on iOS/Desktop)
+  el.reminderToggleBtn.addEventListener('click', () => {
+    if (!('Notification' in window)) {
+      alert('Notifications are not supported in this browser. On iPhone, make sure you are on iOS 16.4+ and have added this app to your Home Screen.');
+      return;
+    }
+
+    if (Notification.permission === 'default') {
+      Notification.requestPermission().then((permission) => {
+        if (permission === 'granted') {
+          dailyStats.remindersEnabled = true;
+          dailyStats.lastReminderTime = Date.now();
+          saveDailyStats();
+          updateDailyGoalUI();
+          sendNotification('Hourly Reminders Active! 🔔', 'We will remind you every hour if you have completed fewer than 5 rounds today.');
+        } else {
+          updateDailyGoalUI();
+        }
+      });
+    } else if (Notification.permission === 'granted') {
+      dailyStats.remindersEnabled = !dailyStats.remindersEnabled;
+      if (dailyStats.remindersEnabled) {
+        dailyStats.lastReminderTime = Date.now();
+      }
+      saveDailyStats();
+      updateDailyGoalUI();
+    } else if (Notification.permission === 'denied') {
+      alert('Notifications are blocked in your browser/iOS settings. To enable reminders, open iPhone Settings > Safari / Zetamac and allow notifications.');
+    }
+  });
+
   // Prevent default double-tap zoom behavior on entire screen
   document.addEventListener('dblclick', (e) => {
     e.preventDefault();
@@ -551,6 +754,12 @@
   // --- Bootstrap ---
   loadSavedData();
   applySettingsToUI();
+  updateDailyGoalUI();
   showScreen('settings');
 
+  // Check reminders on load and periodically every 60 seconds
+  setInterval(checkAndSendHourlyReminder, 60000);
+  checkAndSendHourlyReminder();
+
 })();
+
