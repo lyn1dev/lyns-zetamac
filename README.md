@@ -1,6 +1,6 @@
 # Zetamac (The Arithmetic Game) - iPhone PWA & Desktop
 
-A faithful, 1:1 speed-arithmetic clone of **Zetamac ("The Arithmetic Game")**, specifically crafted as an installable **Progressive Web App (PWA)** optimized for **iPhone** and desktop browsers.
+I vibecoded myself a zetamac clone to track statistics, give myself reminders to do zetamac and stuff i guess.
 
 ---
 
