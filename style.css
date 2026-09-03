@@ -492,6 +492,9 @@ body.in-game #app-header {
   max-width: 380px;
   margin: 0 auto;
   padding-bottom: 8px;
+  touch-action: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .numpad-grid {

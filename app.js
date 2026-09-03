@@ -951,13 +951,40 @@
 
   // --- Event Listeners ---
 
-  // Custom On-Screen Keypad Listeners
+  // Custom On-Screen Keypad Listeners (Optimized for Multi-Touch Fast Typing)
   const numpadKeys = el.numpadContainer.querySelectorAll('.numpad-key');
   numpadKeys.forEach((keyBtn) => {
-    keyBtn.addEventListener('pointerdown', (e) => {
-      e.preventDefault();
+    // Touchstart is significantly more reliable for multi-touch finger rolling on iOS than pointerdown
+    keyBtn.addEventListener('touchstart', (e) => {
+      e.preventDefault(); // Prevents emulated mousedown/click, fixes double-fire
+      keyBtn.classList.add('key-pressed');
       const key = keyBtn.getAttribute('data-key');
       handleInput(key);
+    }, { passive: false });
+
+    keyBtn.addEventListener('touchend', (e) => {
+      e.preventDefault();
+      keyBtn.classList.remove('key-pressed');
+    });
+
+    keyBtn.addEventListener('touchcancel', () => {
+      keyBtn.classList.remove('key-pressed');
+    });
+
+    // Fallback for desktop mouse
+    keyBtn.addEventListener('mousedown', (e) => {
+      e.preventDefault();
+      keyBtn.classList.add('key-pressed');
+      const key = keyBtn.getAttribute('data-key');
+      handleInput(key);
+    });
+
+    keyBtn.addEventListener('mouseup', () => {
+      keyBtn.classList.remove('key-pressed');
+    });
+    
+    keyBtn.addEventListener('mouseleave', () => {
+      keyBtn.classList.remove('key-pressed');
     });
   });
 
