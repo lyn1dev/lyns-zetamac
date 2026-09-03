@@ -9,7 +9,7 @@
   'use strict';
 
   // --- App Version & Cache Reference ---
-  const APP_VERSION = 'v10';
+  const APP_VERSION = 'v11';
 
   // --- Global Database Reference ---
   let db = window.ZetamacSync.getLocalData();
@@ -960,42 +960,104 @@
 
   // --- Event Listeners ---
 
-  // Custom On-Screen Keypad Listeners (Optimized for Multi-Touch Fast Typing)
-  const numpadKeys = el.numpadContainer.querySelectorAll('.numpad-key');
-  numpadKeys.forEach((keyBtn) => {
-    // Touchstart is significantly more reliable for multi-touch finger rolling on iOS than pointerdown
-    keyBtn.addEventListener('touchstart', (e) => {
-      e.preventDefault(); // Prevents emulated mousedown/click, fixes double-fire
-      keyBtn.classList.add('key-pressed');
-      const key = keyBtn.getAttribute('data-key');
-      handleInput(key);
-    }, { passive: false });
+  // --- High-Performance Multi-Touch Input Engine (120Hz ProMotion Optimized) ---
+  // Tracks every concurrent finger independently using hardware touch.identifier and elementFromPoint
+  const activeTouches = new Map(); // touch.identifier -> { keyBtn, key }
 
-    keyBtn.addEventListener('touchend', (e) => {
-      e.preventDefault();
-      keyBtn.classList.remove('key-pressed');
-    });
+  function resolveNumpadKeyAt(x, y) {
+    const elUnderPoint = document.elementFromPoint(x, y);
+    if (!elUnderPoint) return null;
+    const keyBtn = elUnderPoint.closest('.numpad-key');
+    if (!keyBtn || !el.numpadContainer.contains(keyBtn)) return null;
+    const key = keyBtn.getAttribute('data-key');
+    return { keyBtn, key };
+  }
 
-    keyBtn.addEventListener('touchcancel', () => {
-      keyBtn.classList.remove('key-pressed');
-    });
+  // Unified touchstart: guarantees both fingers register even in the exact same 120Hz frame
+  el.numpadContainer.addEventListener('touchstart', (e) => {
+    e.preventDefault(); // Kill iOS gesture detection, 300ms delays, and emulated clicks
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const match = resolveNumpadKeyAt(touch.clientX, touch.clientY);
+      if (match) {
+        activeTouches.set(touch.identifier, match);
+        match.keyBtn.classList.add('key-pressed');
+        handleInput(match.key);
+      }
+    }
+  }, { passive: false });
 
-    // Fallback for desktop mouse
-    keyBtn.addEventListener('mousedown', (e) => {
-      e.preventDefault();
-      keyBtn.classList.add('key-pressed');
-      const key = keyBtn.getAttribute('data-key');
-      handleInput(key);
-    });
+  // Handle rapid finger-glides/rolls between adjacent buttons
+  el.numpadContainer.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const current = resolveNumpadKeyAt(touch.clientX, touch.clientY);
+      const prev = activeTouches.get(touch.identifier);
 
-    keyBtn.addEventListener('mouseup', () => {
-      keyBtn.classList.remove('key-pressed');
-    });
-    
-    keyBtn.addEventListener('mouseleave', () => {
-      keyBtn.classList.remove('key-pressed');
-    });
+      if (current && (!prev || prev.keyBtn !== current.keyBtn)) {
+        if (prev) {
+          prev.keyBtn.classList.remove('key-pressed');
+        }
+        activeTouches.set(touch.identifier, current);
+        current.keyBtn.classList.add('key-pressed');
+        handleInput(current.key);
+      } else if (!current && prev) {
+        prev.keyBtn.classList.remove('key-pressed');
+        activeTouches.delete(touch.identifier);
+      }
+    }
+  }, { passive: false });
+
+  el.numpadContainer.addEventListener('touchend', (e) => {
+    e.preventDefault();
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const prev = activeTouches.get(touch.identifier);
+      if (prev) {
+        prev.keyBtn.classList.remove('key-pressed');
+        activeTouches.delete(touch.identifier);
+      }
+    }
+  }, { passive: false });
+
+  el.numpadContainer.addEventListener('touchcancel', (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const touch = e.changedTouches[i];
+      const prev = activeTouches.get(touch.identifier);
+      if (prev) {
+        prev.keyBtn.classList.remove('key-pressed');
+        activeTouches.delete(touch.identifier);
+      }
+    }
   });
+
+  // Desktop Mouse fallback
+  el.numpadContainer.addEventListener('mousedown', (e) => {
+    const keyBtn = e.target.closest('.numpad-key');
+    if (!keyBtn) return;
+    e.preventDefault();
+    keyBtn.classList.add('key-pressed');
+    const key = keyBtn.getAttribute('data-key');
+    handleInput(key);
+  });
+
+  window.addEventListener('mouseup', () => {
+    const keys = el.numpadContainer.querySelectorAll('.numpad-key');
+    keys.forEach((k) => k.classList.remove('key-pressed'));
+  });
+
+  // Disable iOS Safari multi-touch gestures (pinch-to-zoom / rotate)
+  ['gesturestart', 'gesturechange', 'gestureend'].forEach((evt) => {
+    window.addEventListener(evt, (e) => e.preventDefault(), { passive: false });
+  });
+
+  // Disable rubber-band bounce scroll on document level during active gameplay
+  document.addEventListener('touchmove', (e) => {
+    if (gameState === 'running') {
+      e.preventDefault();
+    }
+  }, { passive: false });
 
   // Physical Keyboard fallback for desktop testing
   window.addEventListener('keydown', (e) => {
