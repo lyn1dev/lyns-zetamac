@@ -8,6 +8,9 @@
 (() => {
   'use strict';
 
+  // --- App Version & Cache Reference ---
+  const APP_VERSION = 'v9';
+
   // --- Global Database Reference ---
   let db = window.ZetamacSync.getLocalData();
 
@@ -60,6 +63,8 @@
     multMax2: document.getElementById('mult-max-2'),
     opSub: document.getElementById('op-sub'),
     opDiv: document.getElementById('op-div'),
+    appVersionBadge: document.getElementById('app-version-badge'),
+    checkUpdateBtn: document.getElementById('check-update-btn'),
 
     // Daily Goals
     dailyCount: document.getElementById('daily-rounds-count'),
@@ -198,6 +203,10 @@
 
     el.opSub.checked = s.subEnabled;
     el.opDiv.checked = s.divEnabled;
+
+    if (el.appVersionBadge) {
+      el.appVersionBadge.textContent = APP_VERSION;
+    }
 
     updateBestScoreDisplay();
   }
@@ -1018,6 +1027,35 @@
     readSettingsFromUI();
     showScreen('start');
   });
+
+  if (el.checkUpdateBtn) {
+    el.checkUpdateBtn.addEventListener('click', async () => {
+      el.checkUpdateBtn.textContent = 'Checking...';
+      if ('serviceWorker' in navigator) {
+        try {
+          const reg = await navigator.serviceWorker.getRegistration();
+          if (reg) {
+            await reg.update();
+            setTimeout(() => {
+              if (el.checkUpdateBtn) el.checkUpdateBtn.textContent = 'Up to date';
+              setTimeout(() => {
+                if (el.checkUpdateBtn) el.checkUpdateBtn.textContent = 'Check for Updates';
+              }, 2000);
+            }, 700);
+            return;
+          }
+        } catch (err) {
+          console.warn('Update check failed:', err);
+        }
+      }
+      setTimeout(() => {
+        if (el.checkUpdateBtn) el.checkUpdateBtn.textContent = 'Up to date';
+        setTimeout(() => {
+          if (el.checkUpdateBtn) el.checkUpdateBtn.textContent = 'Check for Updates';
+        }, 2000);
+      }, 500);
+    });
+  }
 
   el.openStatsBtn.addEventListener('click', () => {
     renderStatisticsScreen();

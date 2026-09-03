@@ -294,6 +294,59 @@ body.in-game #app-header {
   margin-top: 24px;
 }
 
+.settings-version-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 24px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border-color);
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.version-info {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.version-label {
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.version-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  background: #18181b;
+  border: 1px solid var(--secondary-border);
+  color: #38bdf8;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-weight: 700;
+  font-size: 12px;
+  letter-spacing: 0.5px;
+}
+
+.btn-update-check {
+  font-size: 12px;
+  padding: 4px 10px;
+  border-radius: 6px;
+  border: 1px solid var(--secondary-border);
+  background: #121215;
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-update-check:hover,
+.btn-update-check:active {
+  color: #ffffff;
+  border-color: #ffffff;
+  background: #27272a;
+}
+
 .high-score-banner {
   text-align: center;
   margin-top: 14px;
