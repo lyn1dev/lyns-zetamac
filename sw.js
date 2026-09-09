@@ -1,4 +1,4 @@
-const CACHE_NAME = 'zetamac-v14';
+const CACHE_NAME = 'zetamac-v15';
 const ASSETS = [
   './',
   './index.html',

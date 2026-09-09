@@ -9,7 +9,7 @@
   'use strict';
 
   // --- App Version & Cache Reference ---
-  const APP_VERSION = 'v14';
+  const APP_VERSION = 'v15';
 
   // --- Global Database Reference ---
   let db = window.ZetamacSync.getLocalData();
@@ -1003,156 +1003,116 @@
 
   // --- Event Listeners ---
 
-  // --- High-Performance Multi-Touch Input Engine (120Hz ProMotion Optimized) ---
-  // Tracks every concurrent finger independently using hardware touch.identifier and elementFromPoint
-  const activeTouches = new Map(); // touch.identifier -> { keyBtn, key, startX, startY, glideUnlocked, pressedAt }
+  // --- Multi-Touch Input Engine (Pointer Events, one listener per key) ---
+  //
+  // Every finger arrives as its own pointerdown dispatched directly to the key it
+  // landed on, so currentTarget IS the key. There is no coordinate hit-testing:
+  // the previous engine re-derived the target with document.elementFromPoint(),
+  // which runs a SECOND hit test against the live rendering and can disagree with
+  // the one iOS already performed. When it disagreed the finger was discarded in
+  // silence, which is what made two-thumb typing drop keys without even flashing
+  // the key highlight.
+  //
+  // Pointer events also make concurrency a non-issue: fingers are independent
+  // events with their own pointerId rather than entries in a shared changedTouches
+  // list that has to be ordered and batch-processed.
 
-  // A finger must travel this far from where it landed before a key change counts
-  // as a deliberate glide. Below it, the movement is tap jitter: the keys are
-  // flush edge-to-edge with no dead zone, so a few pixels of roll would otherwise
-  // inject a phantom digit from the neighbouring key.
-  const GLIDE_THRESHOLD_PX = 22;
+  const activePointers = new Map(); // pointerId -> { keyBtn, pressedAt }
 
-  // Minimum time a key stays visibly highlighted, so very fast taps still paint
-  // at least one frame of feedback instead of appearing to be dropped.
+  // Minimum time a key stays visibly highlighted, so very fast taps still paint at
+  // least one frame of feedback instead of looking like they were dropped.
   const MIN_PRESS_FEEDBACK_MS = 70;
 
-  function resolveNumpadKeyAt(x, y) {
-    const elUnderPoint = document.elementFromPoint(x, y);
-    if (!elUnderPoint) return null;
-    const keyBtn = elUnderPoint.closest('.numpad-key');
-    if (!keyBtn || !el.numpadContainer.contains(keyBtn)) return null;
-    const key = keyBtn.getAttribute('data-key');
-    return { keyBtn, key };
-  }
+  // Two fingers that land in the same instant are one intent. If the first one
+  // completes the answer, the second was aimed at the problem that just ended, so
+  // its digit must not seed the next problem. Hardware event timestamps tell us
+  // this exactly: a finger landing within this window of the completing press was
+  // already travelling before the new problem existed. Deliberate keystrokes are
+  // 80ms+ apart even when rolling, and no one reacts to a new problem in 30ms.
+  const SIMULTANEOUS_LANDING_MS = 30;
+  let completionEventTime = -Infinity;
+
+  // Per-key press bookkeeping. A key can be held by two fingers at once, and a
+  // pending un-highlight from an earlier press must never strip the highlight off
+  // a later one.
+  const keyPressState = new Map(); // keyBtn -> { holds, timer }
 
   function pressKey(keyBtn) {
+    let st = keyPressState.get(keyBtn);
+    if (!st) {
+      st = { holds: 0, timer: null };
+      keyPressState.set(keyBtn, st);
+    }
+    if (st.timer) {
+      clearTimeout(st.timer);
+      st.timer = null;
+    }
+    st.holds++;
     keyBtn.classList.add('key-pressed');
   }
 
   function releaseKey(keyBtn, pressedAt) {
-    const held = performance.now() - (pressedAt || 0);
+    const st = keyPressState.get(keyBtn);
+    if (!st) return;
+    st.holds = Math.max(0, st.holds - 1);
+    if (st.holds > 0) return; // another finger is still on this key
+
+    const held = performance.now() - pressedAt;
     if (held >= MIN_PRESS_FEEDBACK_MS) {
       keyBtn.classList.remove('key-pressed');
       return;
     }
-    setTimeout(() => keyBtn.classList.remove('key-pressed'), MIN_PRESS_FEEDBACK_MS - held);
+    st.timer = setTimeout(() => {
+      st.timer = null;
+      if (st.holds === 0) keyBtn.classList.remove('key-pressed');
+    }, MIN_PRESS_FEEDBACK_MS - held);
   }
 
-  // Unified touchstart: guarantees both fingers register even in the exact same 120Hz frame
-  el.numpadContainer.addEventListener('touchstart', (e) => {
-    e.preventDefault(); // Kill iOS gesture detection, 300ms delays, and emulated clicks
+  function onKeyDown(e) {
+    // Ignore secondary mouse buttons; touch and pen always report button 0.
+    if (e.pointerType === 'mouse' && e.button !== 0) return;
 
-    // changedTouches is in touch-list order, which is not press order. WebKit hands
-    // out identifiers from a monotonically increasing counter, so ascending
-    // identifier is the closest available proxy for "which finger landed first"
-    // when two fingers arrive inside the same event.
-    const batch = Array.from(e.changedTouches).sort((a, b) => a.identifier - b.identifier);
+    const keyBtn = e.currentTarget;
+    e.preventDefault(); // suppress compatibility mouse/click events and iOS callouts
 
-    let problemCompleted = false;
-    for (let i = 0; i < batch.length; i++) {
-      const touch = batch[i];
-      const match = resolveNumpadKeyAt(touch.clientX, touch.clientY);
-      if (!match) continue;
-
-      // Always track the finger and light the key so touchend/touchmove stay
-      // consistent, even when we stop consuming input mid-batch.
-      activeTouches.set(touch.identifier, {
-        keyBtn: match.keyBtn,
-        key: match.key,
-        startX: touch.clientX,
-        startY: touch.clientY,
-        glideUnlocked: false,
-        pressedAt: performance.now()
-      });
-      pressKey(match.keyBtn);
-
-      // Once a digit completes the answer the buffer belongs to the next problem.
-      // Any remaining finger in this same event was aimed at the problem that just
-      // ended, so its digit is discarded rather than seeding the new one.
-      if (problemCompleted) continue;
-      problemCompleted = handleInput(match.key);
+    // Do not let the browser retarget this pointer to a different element mid-press.
+    if (keyBtn.hasPointerCapture && keyBtn.hasPointerCapture(e.pointerId)) {
+      keyBtn.releasePointerCapture(e.pointerId);
     }
-  }, { passive: false });
 
-  // Handle rapid finger-glides/rolls between adjacent buttons
-  el.numpadContainer.addEventListener('touchmove', (e) => {
-    e.preventDefault();
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      const prev = activeTouches.get(touch.identifier);
-      const current = resolveNumpadKeyAt(touch.clientX, touch.clientY);
+    activePointers.set(e.pointerId, { keyBtn, pressedAt: performance.now() });
+    pressKey(keyBtn);
 
-      if (!current) {
-        if (prev) {
-          releaseKey(prev.keyBtn, prev.pressedAt);
-          activeTouches.delete(touch.identifier);
-        }
-        continue;
-      }
-
-      // A finger that never started on the pad has nothing to glide from.
-      if (!prev) continue;
-
-      if (prev.keyBtn === current.keyBtn) continue;
-
-      if (!prev.glideUnlocked) {
-        const dx = touch.clientX - prev.startX;
-        const dy = touch.clientY - prev.startY;
-        if (Math.hypot(dx, dy) < GLIDE_THRESHOLD_PX) continue; // tap jitter, not a glide
-        prev.glideUnlocked = true;
-      }
-
-      releaseKey(prev.keyBtn, prev.pressedAt);
-      activeTouches.set(touch.identifier, {
-        keyBtn: current.keyBtn,
-        key: current.key,
-        startX: touch.clientX,
-        startY: touch.clientY,
-        glideUnlocked: true,
-        pressedAt: performance.now()
-      });
-      pressKey(current.keyBtn);
-      handleInput(current.key);
-    }
-  }, { passive: false });
-
-  el.numpadContainer.addEventListener('touchend', (e) => {
-    e.preventDefault();
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      const prev = activeTouches.get(touch.identifier);
-      if (prev) {
-        releaseKey(prev.keyBtn, prev.pressedAt);
-        activeTouches.delete(touch.identifier);
-      }
-    }
-  }, { passive: false });
-
-  el.numpadContainer.addEventListener('touchcancel', (e) => {
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
-      const prev = activeTouches.get(touch.identifier);
-      if (prev) {
-        releaseKey(prev.keyBtn, prev.pressedAt);
-        activeTouches.delete(touch.identifier);
-      }
-    }
-  });
-
-  // Desktop Mouse fallback
-  el.numpadContainer.addEventListener('mousedown', (e) => {
-    const keyBtn = e.target.closest('.numpad-key');
-    if (!keyBtn) return;
-    e.preventDefault();
-    keyBtn.classList.add('key-pressed');
     const key = keyBtn.getAttribute('data-key');
-    handleInput(key);
+    const landedWithCompletingPress = e.timeStamp - completionEventTime <= SIMULTANEOUS_LANDING_MS;
+    if (landedWithCompletingPress) return; // stale finger from the previous problem
+
+    if (handleInput(key)) completionEventTime = e.timeStamp;
+  }
+
+  function onKeyUp(e) {
+    const rec = activePointers.get(e.pointerId);
+    if (!rec) return;
+    activePointers.delete(e.pointerId);
+    releaseKey(rec.keyBtn, rec.pressedAt);
+  }
+
+  el.numpadContainer.querySelectorAll('.numpad-key').forEach((keyBtn) => {
+    keyBtn.addEventListener('pointerdown', onKeyDown);
+    // pointerup/cancel are bound at document level: with pointer capture released,
+    // a finger that drifts off the key lifts somewhere else entirely, and the key
+    // must still un-highlight.
+    keyBtn.addEventListener('contextmenu', (ev) => ev.preventDefault());
   });
 
-  window.addEventListener('mouseup', () => {
-    const keys = el.numpadContainer.querySelectorAll('.numpad-key');
-    keys.forEach((k) => k.classList.remove('key-pressed'));
+  document.addEventListener('pointerup', onKeyUp);
+  document.addEventListener('pointercancel', onKeyUp);
+
+  // Safety net: if a pointer is lost without any terminal event (backgrounding,
+  // a system gesture stealing the touch), clear stuck highlights.
+  window.addEventListener('blur', () => {
+    activePointers.forEach((rec) => releaseKey(rec.keyBtn, rec.pressedAt));
+    activePointers.clear();
   });
 
   // Disable iOS Safari multi-touch gestures (pinch-to-zoom / rotate)
