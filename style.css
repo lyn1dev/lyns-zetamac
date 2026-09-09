@@ -634,7 +634,10 @@ body[data-screen="start"] #app-container {
   touch-action: none;
   -webkit-touch-callout: none;
   -webkit-tap-highlight-color: transparent;
-  transition: background-color 0.05s ease;
+  /* No transition: the press highlight must land on the very next frame. A 50ms
+     ease ramps in AND out, so a fast tap never reaches full brightness before
+     touchend reverses it, which reads as input lag. */
+  transition: none;
   box-sizing: border-box;
 }
 

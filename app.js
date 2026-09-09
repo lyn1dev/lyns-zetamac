@@ -9,7 +9,7 @@
   'use strict';
 
   // --- App Version & Cache Reference ---
-  const APP_VERSION = 'v13';
+  const APP_VERSION = 'v14';
 
   // --- Global Database Reference ---
   let db = window.ZetamacSync.getLocalData();
@@ -20,7 +20,6 @@
   let virtualBuffer = '';
   let score = 0;
   let gameStartTime = 0;
-  let timerAnimFrame = null;
   let timerInterval = null;
   let currentSessionProblems = [];
   let problemInterruptedByBackground = false;
@@ -443,8 +442,12 @@
   }
 
   // --- Virtual Input Engine ---
+  // Returns true if this keystroke completed the problem and advanced to the next
+  // one. Callers processing a batch of simultaneous touches must stop feeding
+  // input once that happens, otherwise the remaining fingers in the same event
+  // leak their digits into the freshly-cleared buffer of the NEXT problem.
   function handleInput(key) {
-    if (gameState !== 'running' || !currentProblem) return;
+    if (gameState !== 'running' || !currentProblem) return false;
 
     if (key === 'clear') {
       if (virtualBuffer.length > 0) {
@@ -452,7 +455,7 @@
         problemCorrections++;
         el.virtualAnswerText.textContent = '';
       }
-      return;
+      return false;
     }
 
     if (key === 'backspace') {
@@ -461,7 +464,7 @@
         problemCorrections++;
         el.virtualAnswerText.textContent = virtualBuffer;
       }
-      return;
+      return false;
     }
 
     // Digit entry (0 - 9)
@@ -471,7 +474,7 @@
         problemFirstKeyMs = Math.round(performance.now() - problemShownAt);
       }
 
-      if (virtualBuffer.length >= 7) return;
+      if (virtualBuffer.length >= 7) return false;
       virtualBuffer += key;
       el.virtualAnswerText.textContent = virtualBuffer;
 
@@ -500,42 +503,42 @@
         }
 
         displayNextProblem();
+        return true;
       }
     }
+
+    return false;
   }
 
   // --- High Precision Timer ---
+  // The readout only ever shows whole seconds, so it is polled on an interval and
+  // written only when the displayed value actually changes. A requestAnimationFrame
+  // loop here would rewrite gameTimer.textContent up to 120 times per second on a
+  // ProMotion display, invalidating style on every frame while the player types.
   function startTimer() {
     gameStartTime = Date.now();
     const duration = db.core.settings.duration;
+    let lastShown = null;
 
     function updateTimer() {
       if (gameState !== 'running') return;
       const elapsed = (Date.now() - gameStartTime) / 1000;
       const remaining = Math.max(0, Math.ceil(duration - elapsed));
-      el.gameTimer.textContent = remaining;
 
-      if (remaining <= 0) {
-        endGame();
-        return;
+      if (remaining !== lastShown) {
+        lastShown = remaining;
+        el.gameTimer.textContent = remaining;
       }
-      timerAnimFrame = requestAnimationFrame(updateTimer);
+
+      if (remaining <= 0) endGame();
     }
 
-    timerAnimFrame = requestAnimationFrame(updateTimer);
-    timerInterval = setInterval(() => {
-      if (gameState !== 'running') return;
-      const elapsed = (Date.now() - gameStartTime) / 1000;
-      const remaining = Math.max(0, Math.ceil(duration - elapsed));
-      el.gameTimer.textContent = remaining;
-      if (remaining <= 0) endGame();
-    }, 250);
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 100);
   }
 
   function stopTimer() {
-    if (timerAnimFrame) cancelAnimationFrame(timerAnimFrame);
     if (timerInterval) clearInterval(timerInterval);
-    timerAnimFrame = null;
     timerInterval = null;
   }
 
@@ -1002,7 +1005,17 @@
 
   // --- High-Performance Multi-Touch Input Engine (120Hz ProMotion Optimized) ---
   // Tracks every concurrent finger independently using hardware touch.identifier and elementFromPoint
-  const activeTouches = new Map(); // touch.identifier -> { keyBtn, key }
+  const activeTouches = new Map(); // touch.identifier -> { keyBtn, key, startX, startY, glideUnlocked, pressedAt }
+
+  // A finger must travel this far from where it landed before a key change counts
+  // as a deliberate glide. Below it, the movement is tap jitter: the keys are
+  // flush edge-to-edge with no dead zone, so a few pixels of roll would otherwise
+  // inject a phantom digit from the neighbouring key.
+  const GLIDE_THRESHOLD_PX = 22;
+
+  // Minimum time a key stays visibly highlighted, so very fast taps still paint
+  // at least one frame of feedback instead of appearing to be dropped.
+  const MIN_PRESS_FEEDBACK_MS = 70;
 
   function resolveNumpadKeyAt(x, y) {
     const elUnderPoint = document.elementFromPoint(x, y);
@@ -1013,17 +1026,52 @@
     return { keyBtn, key };
   }
 
+  function pressKey(keyBtn) {
+    keyBtn.classList.add('key-pressed');
+  }
+
+  function releaseKey(keyBtn, pressedAt) {
+    const held = performance.now() - (pressedAt || 0);
+    if (held >= MIN_PRESS_FEEDBACK_MS) {
+      keyBtn.classList.remove('key-pressed');
+      return;
+    }
+    setTimeout(() => keyBtn.classList.remove('key-pressed'), MIN_PRESS_FEEDBACK_MS - held);
+  }
+
   // Unified touchstart: guarantees both fingers register even in the exact same 120Hz frame
   el.numpadContainer.addEventListener('touchstart', (e) => {
     e.preventDefault(); // Kill iOS gesture detection, 300ms delays, and emulated clicks
-    for (let i = 0; i < e.changedTouches.length; i++) {
-      const touch = e.changedTouches[i];
+
+    // changedTouches is in touch-list order, which is not press order. WebKit hands
+    // out identifiers from a monotonically increasing counter, so ascending
+    // identifier is the closest available proxy for "which finger landed first"
+    // when two fingers arrive inside the same event.
+    const batch = Array.from(e.changedTouches).sort((a, b) => a.identifier - b.identifier);
+
+    let problemCompleted = false;
+    for (let i = 0; i < batch.length; i++) {
+      const touch = batch[i];
       const match = resolveNumpadKeyAt(touch.clientX, touch.clientY);
-      if (match) {
-        activeTouches.set(touch.identifier, match);
-        match.keyBtn.classList.add('key-pressed');
-        handleInput(match.key);
-      }
+      if (!match) continue;
+
+      // Always track the finger and light the key so touchend/touchmove stay
+      // consistent, even when we stop consuming input mid-batch.
+      activeTouches.set(touch.identifier, {
+        keyBtn: match.keyBtn,
+        key: match.key,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        glideUnlocked: false,
+        pressedAt: performance.now()
+      });
+      pressKey(match.keyBtn);
+
+      // Once a digit completes the answer the buffer belongs to the next problem.
+      // Any remaining finger in this same event was aimed at the problem that just
+      // ended, so its digit is discarded rather than seeding the new one.
+      if (problemCompleted) continue;
+      problemCompleted = handleInput(match.key);
     }
   }, { passive: false });
 
@@ -1032,20 +1080,40 @@
     e.preventDefault();
     for (let i = 0; i < e.changedTouches.length; i++) {
       const touch = e.changedTouches[i];
-      const current = resolveNumpadKeyAt(touch.clientX, touch.clientY);
       const prev = activeTouches.get(touch.identifier);
+      const current = resolveNumpadKeyAt(touch.clientX, touch.clientY);
 
-      if (current && (!prev || prev.keyBtn !== current.keyBtn)) {
+      if (!current) {
         if (prev) {
-          prev.keyBtn.classList.remove('key-pressed');
+          releaseKey(prev.keyBtn, prev.pressedAt);
+          activeTouches.delete(touch.identifier);
         }
-        activeTouches.set(touch.identifier, current);
-        current.keyBtn.classList.add('key-pressed');
-        handleInput(current.key);
-      } else if (!current && prev) {
-        prev.keyBtn.classList.remove('key-pressed');
-        activeTouches.delete(touch.identifier);
+        continue;
       }
+
+      // A finger that never started on the pad has nothing to glide from.
+      if (!prev) continue;
+
+      if (prev.keyBtn === current.keyBtn) continue;
+
+      if (!prev.glideUnlocked) {
+        const dx = touch.clientX - prev.startX;
+        const dy = touch.clientY - prev.startY;
+        if (Math.hypot(dx, dy) < GLIDE_THRESHOLD_PX) continue; // tap jitter, not a glide
+        prev.glideUnlocked = true;
+      }
+
+      releaseKey(prev.keyBtn, prev.pressedAt);
+      activeTouches.set(touch.identifier, {
+        keyBtn: current.keyBtn,
+        key: current.key,
+        startX: touch.clientX,
+        startY: touch.clientY,
+        glideUnlocked: true,
+        pressedAt: performance.now()
+      });
+      pressKey(current.keyBtn);
+      handleInput(current.key);
     }
   }, { passive: false });
 
@@ -1055,7 +1123,7 @@
       const touch = e.changedTouches[i];
       const prev = activeTouches.get(touch.identifier);
       if (prev) {
-        prev.keyBtn.classList.remove('key-pressed');
+        releaseKey(prev.keyBtn, prev.pressedAt);
         activeTouches.delete(touch.identifier);
       }
     }
@@ -1066,7 +1134,7 @@
       const touch = e.changedTouches[i];
       const prev = activeTouches.get(touch.identifier);
       if (prev) {
-        prev.keyBtn.classList.remove('key-pressed');
+        releaseKey(prev.keyBtn, prev.pressedAt);
         activeTouches.delete(touch.identifier);
       }
     }
